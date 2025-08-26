@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 
-const schema = z.object({@hookform/resolvers
+const schema = z.object({
 email: z.string().email(),
 password: z.string().min(6, 'Password must be at least 6 characters'),
 })
