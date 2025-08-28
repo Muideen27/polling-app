@@ -3,6 +3,26 @@
 
 This guide provides end-to-end prompts to recreate a polling application from scratch using Next.js (App Router) and Tailwind CSS. Follow these steps in order, with each prompt assuming a fresh project setup.
 
+## Screenshots
+
+Place the images in `polling-app/public/screenshots/` with the exact filenames below so they render on GitHub.
+
+- Home
+
+![Home](polling-app/public/screenshots/home.png)
+
+- Login
+
+![Login](polling-app/public/screenshots/login.png)
+
+- Register
+
+![Register](polling-app/public/screenshots/register.png)
+
+- Dashboard
+
+![Dashboard](polling-app/public/screenshots/dashboard.png)
+
 ## 1. Bootstrap Project
 
 Create a Next.js 15 TypeScript app named polling-app with Tailwind CSS installed and configured for the App Router. Add eslint, typescript, and tailwind v4. Set up src/ structure and app/ directory.
