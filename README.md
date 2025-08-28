@@ -23,6 +23,51 @@ Place the images in `polling-app/public/screenshots/` with the exact filenames b
 
 ![Dashboard](polling-app/public/screenshots/dashboard.png)
 
+## Prompts and AI Responses (Representative)
+
+Below are condensed examples of the prompts used during this build and the assistant’s responses/actions. They’re grouped by milestone with links to the affected files.
+
+### Landing page redesign
+- **Prompt:** “Professionally recreate the homepage with a top bar (Polling App left, Get Started right) and a modern hero.”
+- **AI response/outcome:** Implemented nav + hero with vector illustration and feature highlights.
+  - Files: `src/app/page.tsx`, `app/globals.css`
+
+### Auth provider + Supabase
+- **Prompt:** “Create an auth provider with Supabase: signIn, signUp, signOut; manage session and auth state changes.”
+- **AI response/outcome:** Added `AuthProvider` with `getSession`, `onAuthStateChange`, metadata on signUp, and robust error logging.
+  - Files: `src/lib/auth-provider.tsx`, `src/lib/supabase-browser.ts`
+
+### Register form (UX + validation)
+- **Prompt:** “Build a professional register form with RHF + Zod, strength meter, visibility toggles, and terms acceptance.”
+- **AI response/outcome:** Implemented fields, `superRefine` validations, strength meter, and polished UI. Clear messaging for ‘email already registered’.
+  - File: `src/components/RegisterForm.tsx`
+
+### Login form (UX + resend confirmation)
+- **Prompt:** “Build a professional login form with remember‑me, password toggle, and a ‘Resend confirmation’ action.”
+- **AI response/outcome:** Added resend via `supabase.auth.resend`, improved errors, and redirect to dashboard on success.
+  - File: `src/components/LoginForm.tsx`
+
+### Checkbox compatibility
+- **Prompt:** “Create a checkbox component and ensure RHF compatibility.”
+- **AI response/outcome:** Added `ui/checkbox` and also used native checkbox where needed for reliable RHF wiring.
+  - File: `src/components/ui/checkbox.tsx`
+
+### Dashboard
+- **Prompt:** “Recreate `/dashboard` professionally; greet with full name from metadata; quick actions and account settings.”
+- **AI response/outcome:** Personalized greeting, quick action cards, account details (name, email, user id, status), and sign‑out.
+  - File: `src/app/dashboard/page.tsx`
+
+### Email delivery + environment
+- **Prompt:** “Diagnose confirmation email issues; support both built‑in email and custom SMTP.”
+- **AI response/outcome:** Added resend flow; documented Supabase Auth URL config and SMTP steps; ensured `.env.local` single‑line keys.
+  - Files: `README.md`, `.env.local` (user‑provided)
+
+### Commit & push
+- **Prompt:** “Generate a meaningful commit message and push to `feat/auth`.”
+- **AI response/outcome:** Committed UI/auth changes, screenshots references; pushed branch.
+
+> Tip: For a full conversation log, use your VCS platform or workspace history. This section captures the key prompts and their concrete outcomes.
+
 ## 1. Bootstrap Project
 
 Create a Next.js 15 TypeScript app named polling-app with Tailwind CSS installed and configured for the App Router. Add eslint, typescript, and tailwind v4. Set up src/ structure and app/ directory.
@@ -182,3 +227,4 @@ Use: `feat(app): professional UI overhaul, robust auth flow, new dashboard…` w
 ### Verification:
 - Verify `.env.local` keys are single-line
 - Check Network → auth endpoints (signup 200/201; sign-in after confirm)
+
