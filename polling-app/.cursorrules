@@ -71,6 +71,11 @@ alwaysApply: true
 - ✅ Secrets only from `.env.local`
 - ✅ `revalidatePath` called after mutations
 
+## Golden Rules (strictly enforced)
+- **Server Actions must import `supabaseServer` from `@/lib/supabase-server` and must not import or instantiate the browser client.**
+- **Forms must submit via `<form action={serverAction}>`; never call a Server Action inside a client `onSubmit`, and never use `/api/*` for core mutations.**
+- **Database operations must follow the exact schema: polls(question) then poll_options(poll_id, label, idx).**
+
 ## Built-in Audit Prompts (paste into Cursor when reviewing)
 - **Compliance summary**
   > Summarize whether `src/lib/actions/polls.ts` and `src/app/dashboard/create/page.tsx` follow these rules. Check: (1) server uses `supabaseServer`, (2) form uses `<form action={createPoll}>` (no client onSubmit), (3) `poll_options` inserts `(poll_id, label, idx)`, (4) no client fetch/API routes, (5) `revalidatePath` after mutation.
