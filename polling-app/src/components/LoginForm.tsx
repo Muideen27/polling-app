@@ -67,7 +67,7 @@ export function LoginForm() {
       } else {
         toast.error('Sign in failed. Please try again.')
       }
-    } catch (error) {
+    } catch {
       toast.error('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
@@ -204,7 +204,7 @@ export function LoginForm() {
             disabled={resending}
             className="text-sm text-primary hover:underline disabled:opacity-50"
           >
-            {resending ? 'Sending confirmation…' : "Didn't get the email? Resend confirmation"}
+            {resending ? 'Sending confirmation…' : "Didn&apos;t get the email? Resend confirmation"}
           </button>
         </div>
 
@@ -239,7 +239,7 @@ export function LoginForm() {
 
         {/* Register Link */}
         <div className="text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/auth/register" className="text-primary hover:underline font-medium">
             Sign up
           </Link>

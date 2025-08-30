@@ -54,7 +54,9 @@ return (
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-sm text-muted-foreground">Start a new poll and share it instantly.</p>
-        <Button className="w-full">New Poll</Button>
+        <Button asChild className="w-full">
+          <Link href="/dashboard/create">New Poll</Link>
+        </Button>
       </CardContent>
     </Card>
 

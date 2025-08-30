@@ -1,0 +1,85 @@
+---
+description: Rules and guidelines for the Polling App (Next.js + Supabase)
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+## Technology Stack
+- Language: TypeScript
+- Framework: Next.js (App Router)
+- Database & Auth: Supabase
+- Styling: Tailwind CSS + shadcn/ui
+- Forms: react-hook-form + zod
+- State: Prefer Server Components; use client state only where needed
+- QR Codes: qrcode.react (or equivalent React QR lib)
+
+## Folder Structure
+- Routes: `src/app/.../page.tsx`
+- Components: `src/components/*`
+- shadcn/ui: `src/components/ui/*`
+- Lib & actions: `src/lib/*`  
+  - Supabase clients: `supabase-server.ts`, `supabase-browser.ts`
+  - Server Actions: `src/lib/actions/*`
+- Imports must use `@/` alias (no deep relative imports).
+
+## Core Rules (enforced)
+1. **Forms → Server Actions (native)**
+   - Forms must submit via `<form action={serverAction}>`.
+   - **Never** call a Server Action inside a client `onSubmit`; **never** use `fetch('/api/*')` for core mutations.
+
+2. **Data Fetching → Server Components**
+   - Never use `useEffect` to fetch page data. Fetch with Supabase in a Server Component.
+
+3. **Supabase**
+   - Server code (Server Actions, Server Components) must import and use `@/lib/supabase-server`.
+   - Client code (auth/session UI) may use `@/lib/supabase-browser`.
+   - Do not instantiate the browser client in server code.
+   - Never hardcode secrets; always load from `.env.local`.
+
+4. **Mutations & Revalidation**
+   - After successful mutations, call `revalidatePath()` for affected routes.
+
+5. **UI**
+   - Use shadcn/ui components (`Button`, `Card`, `Input`, `Label`, etc.) for forms.
+   - Provide semantic labels, inline errors, and disabled states during submission.
+
+6. **Naming**
+   - Components: PascalCase (e.g., `PollForm.tsx`).
+   - Functions/utilities/actions: camelCase (e.g., `submitVote`).
+
+7. **Types**
+   - Exported functions/components must have explicit types. Prefer `async function name(): Promise<...>`.
+
+## Data Model
+- `polls(id, owner, question, created_at)`
+- `poll_options(id, poll_id, label, idx)`
+- `votes(id, poll_id, option_id, voter_fingerprint, created_at)`
+
+## Anti-Patterns (do NOT do these)
+- ❌ Posting forms to `/api/*` from the client for core mutations.
+- ❌ Calling Server Actions from client `onSubmit` handlers.
+- ❌ Using the browser Supabase client in Server Actions/Server Components.
+- ❌ Fetching page data in `useEffect` for SSR pages.
+- ❌ Deep relative imports (`../../..`) instead of `@/`.
+
+## Verification Checklist (use before finishing a task)
+- ✅ App Router + Server Components for data fetching
+- ✅ Server Actions for form submissions (native `<form action>` used)
+- ✅ Supabase server client used in server code; browser client in client code only
+- ✅ shadcn/ui components with labels/errors/disabled states
+- ✅ Secrets only from `.env.local`
+- ✅ `revalidatePath` called after mutations
+
+## Golden Rules (strictly enforced)
+- **Server Actions must import `supabaseServer` from `@/lib/supabase-server` and must not import or instantiate the browser client.**
+- **Forms must submit via `<form action={serverAction}>`; never call a Server Action inside a client `onSubmit`, and never use `/api/*` for core mutations.**
+- **Database operations must follow the exact schema: polls(question) then poll_options(poll_id, label, idx).**
+
+## Built-in Audit Prompts (paste into Cursor when reviewing)
+- **Compliance summary**
+  > Summarize whether `src/lib/actions/polls.ts` and `src/app/dashboard/create/page.tsx` follow these rules. Check: (1) server uses `supabaseServer`, (2) form uses `<form action={createPoll}>` (no client onSubmit), (3) `poll_options` inserts `(poll_id, label, idx)`, (4) no client fetch/API routes, (5) `revalidatePath` after mutation.
+
+- **Fix suggestions**
+  > List minimal changes required to make these files compliant with the rules above. Do not rewrite; only suggest exact edits.
+
