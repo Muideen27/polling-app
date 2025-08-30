@@ -1,28 +1,34 @@
 -- Polls table schema for the polling application
 -- This should be created in your Supabase database
 
+-- Enable uuid extension if not already enabled
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Main polls table
 CREATE TABLE IF NOT EXISTS polls (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   question TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  options TEXT[] NOT NULL, -- Array of text for poll options
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()),
+  expires_at TIMESTAMP WITH TIME ZONE,
+  is_active BOOLEAN DEFAULT TRUE
 );
 
--- Poll options table (normalized structure)
-CREATE TABLE IF NOT EXISTS poll_options (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  poll_id UUID NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
-  label TEXT NOT NULL,
-  idx INTEGER NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Votes table (instead of poll_options)
+CREATE TABLE IF NOT EXISTS votes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  poll_id UUID REFERENCES polls(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  option_index INTEGER NOT NULL, -- Index of the chosen option
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
 );
 
 -- Enable Row Level Security (RLS) on polls table
 ALTER TABLE polls ENABLE ROW LEVEL SECURITY;
 
--- Enable Row Level Security (RLS) on poll_options table
-ALTER TABLE poll_options ENABLE ROW LEVEL SECURITY;
+-- Enable Row Level Security (RLS) on votes table
+ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for the polls table
 -- Users can view all polls
@@ -41,27 +47,28 @@ CREATE POLICY "Users can update their own polls" ON polls
 CREATE POLICY "Users can delete their own polls" ON polls
   FOR DELETE USING (true);
 
--- Create policies for the poll_options table
--- Users can view all poll options
-CREATE POLICY "Users can view all poll options" ON poll_options
+-- Create policies for the votes table
+-- Users can view all votes
+CREATE POLICY "Users can view all votes" ON votes
   FOR SELECT USING (true);
 
--- Users can create poll options
-CREATE POLICY "Users can create poll options" ON poll_options
+-- Users can create votes
+CREATE POLICY "Users can create votes" ON votes
   FOR INSERT WITH CHECK (true);
 
--- Users can update poll options
-CREATE POLICY "Users can update poll options" ON poll_options
+-- Users can update their own votes
+CREATE POLICY "Users can update their own votes" ON votes
   FOR UPDATE USING (true);
 
--- Users can delete poll options
-CREATE POLICY "Users can delete poll options" ON poll_options
+-- Users can delete their own votes
+CREATE POLICY "Users can delete their own votes" ON votes
   FOR DELETE USING (true);
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_polls_created_at ON polls(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_poll_options_poll_id ON poll_options(poll_id);
-CREATE INDEX IF NOT EXISTS idx_poll_options_idx ON poll_options(idx);
+CREATE INDEX IF NOT EXISTS idx_polls_user_id ON polls(user_id);
+CREATE INDEX IF NOT EXISTS idx_votes_poll_id ON votes(poll_id);
+CREATE INDEX IF NOT EXISTS idx_votes_user_id ON votes(user_id);
 
--- Add unique constraint to prevent duplicate options for the same poll
-CREATE UNIQUE INDEX IF NOT EXISTS idx_poll_options_unique ON poll_options(poll_id, idx);
+-- Optional: Prevent duplicate votes per user per poll (if desired)
+CREATE UNIQUE INDEX IF NOT EXISTS unique_vote_per_user_per_poll ON votes(poll_id, user_id);

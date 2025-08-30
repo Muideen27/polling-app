@@ -30,12 +30,14 @@ export async function createPoll(formData: FormData): Promise<void> {
 
     const supabase = supabaseServer()
     
-    // Insert into polls table
+    // Insert into polls table with options array
     const { data: pollData, error: pollError } = await supabase
       .from('polls')
       .insert({
         question: question.trim(),
-        created_at: new Date().toISOString()
+        options: options, // Store options as TEXT[] array
+        created_at: new Date().toISOString(),
+        is_active: true
       })
       .select('id')
       .single()
@@ -49,31 +51,6 @@ export async function createPoll(formData: FormData): Promise<void> {
     }
 
     console.log('Poll created successfully:', pollData)
-
-    // Insert into poll_options table
-    const pollOptions = options.map((option, idx) => ({
-      poll_id: pollData.id,
-      label: option,
-      idx: idx
-    }))
-
-    const { error: optionsError } = await supabase
-      .from('poll_options')
-      .insert(pollOptions)
-
-    if (optionsError) {
-      console.error('Error creating poll options:', optionsError)
-      if (optionsError.code === '42P01') {
-        // Clean up the poll if options creation fails
-        await supabase.from('polls').delete().eq('id', pollData.id)
-        throw new Error('Database table "poll_options" does not exist. Please run the database schema setup.')
-      }
-      // Clean up the poll if options creation fails
-      await supabase.from('polls').delete().eq('id', pollData.id)
-      throw new Error(`Failed to create poll options: ${optionsError.message}`)
-    }
-
-    console.log('Poll options created successfully')
     revalidatePath('/dashboard')
     redirect('/dashboard')
   } catch (error) {
