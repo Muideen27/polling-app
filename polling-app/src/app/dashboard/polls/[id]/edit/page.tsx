@@ -5,10 +5,15 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { User, BarChart3 as BarChartIcon, ArrowLeft, Save } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-export default function EditPollPage({ params }: { params: { id: string } }) {
+export default function EditPollPage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuth()
-  const pollId = params.id
+  const [pollId, setPollId] = useState<string>('')
+
+  useEffect(() => {
+    params.then(({ id }) => setPollId(id))
+  }, [params])
 
   const fullName = (user?.user_metadata?.full_name as string) || (user?.user_metadata?.name as string) || ''
 

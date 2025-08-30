@@ -21,7 +21,7 @@ export async function createPoll(formData: FormData): Promise<void> {
       throw new Error('At least 2 options are required')
     }
 
-    const supabase = supabaseServer()
+    const supabase = await supabaseServer()
     
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -29,7 +29,7 @@ export async function createPoll(formData: FormData): Promise<void> {
       throw new Error('You must be logged in to create a poll')
     }
 
-    const { data: pollData, error: pollError } = await supabase
+    const { error: pollError } = await supabase
       .from('polls')
       .insert({
         user_id: user.id,
@@ -38,8 +38,6 @@ export async function createPoll(formData: FormData): Promise<void> {
         created_at: new Date().toISOString(),
         is_active: true
       })
-      .select('id')
-      .single()
 
     if (pollError) {
       console.error('Error creating poll:', pollError)
@@ -57,9 +55,9 @@ export async function createPoll(formData: FormData): Promise<void> {
   }
 }
 
-export async function getUserPolls(): Promise<{ polls: any[]; error?: string }> {
+export async function getUserPolls(): Promise<{ polls: Array<{ id: string; question: string; options: string[]; created_at: string; is_active: boolean }>; error?: string }> {
   try {
-    const supabase = supabaseServer()
+    const supabase = await supabaseServer()
     
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -90,7 +88,7 @@ export async function getUserPolls(): Promise<{ polls: any[]; error?: string }> 
 
 export async function deletePoll(pollId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = supabaseServer()
+    const supabase = await supabaseServer()
     
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()

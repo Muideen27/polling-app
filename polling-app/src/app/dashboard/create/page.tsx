@@ -1,6 +1,5 @@
 'use client'
 
-import { createPoll } from '@/lib/actions/polls'
 import { useAuth } from '@/lib/auth-provider'
 import Link from 'next/link'
 import { ArrowLeft, Plus, X, User, BarChart3 as BarChartIcon } from 'lucide-react'
@@ -11,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase-browser'
 
 export default function CreatePollPage() {
   const { user } = useAuth()
@@ -103,6 +103,13 @@ export default function CreatePollPage() {
     setSuccess('')
 
     try {
+      // Get the current session from Supabase browser client
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        setError('No active session found')
+        return
+      }
+
       // Add the current options to the form data
       options.forEach((option, index) => {
         if (option.trim()) {
@@ -110,9 +117,21 @@ export default function CreatePollPage() {
         }
       })
       
-      // Call the Server Action
-      await createPoll(formData)
-      
+      // Call the API route with the access token
+      const response = await fetch('/api/polls/create', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to create poll')
+        return
+      }
+
       // Show success message
       setSuccess('Poll created successfully!')
       

@@ -1,13 +1,14 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-provider'
-import { getUserPolls, deletePoll } from '@/lib/actions/polls'
+import { deletePoll } from '@/lib/actions/polls'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { User, BarChart3 as BarChartIcon, PlusCircle, ArrowLeft, Edit, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
+import { supabase } from '@/lib/supabase-browser'
 
 interface Poll {
   id: string
@@ -35,14 +36,31 @@ export default function MyPollsPage() {
   const fetchPolls = async () => {
     try {
       setLoading(true)
-      const result = await getUserPolls()
-      if (result.error) {
-        setError(result.error)
-      } else {
-        setPolls(result.polls)
-        setError('')
+      
+      // Get the current session from Supabase browser client
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        setError('No active session found')
+        return
       }
-    } catch (err) {
+
+      // Call the API route with the access token
+      const response = await fetch('/api/polls', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to fetch polls')
+        return
+      }
+
+      const result = await response.json()
+      setPolls(result.polls)
+      setError('')
+    } catch {
       setError('Failed to fetch polls')
     } finally {
       setLoading(false)
@@ -63,7 +81,7 @@ export default function MyPollsPage() {
       } else {
         toast.error(result.error || 'Failed to delete poll')
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete poll')
     } finally {
       setDeletingPollId(null)
@@ -217,7 +235,7 @@ export default function MyPollsPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground mb-4">
-                      You haven't created any polls yet. Start by creating your first poll!
+                      You haven&apos;t created any polls yet. Start by creating your first poll!
                     </p>
                     <Button asChild>
                       <Link href="/dashboard/create">Create Your First Poll</Link>
