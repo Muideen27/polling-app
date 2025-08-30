@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-provider'
-import { deletePoll } from '@/lib/actions/polls'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -74,14 +73,36 @@ export default function MyPollsPage() {
 
     setDeletingPollId(pollId)
     try {
-      const result = await deletePoll(pollId)
+      // Get the current session from Supabase browser client
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        toast.error('No active session found')
+        return
+      }
+
+      // Call the API route with the access token
+      const response = await fetch(`/api/polls/${pollId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Failed to delete poll')
+        return
+      }
+
+      const result = await response.json()
       if (result.success) {
         toast.success('Poll deleted successfully')
         setPolls(polls.filter(poll => poll.id !== pollId))
       } else {
         toast.error(result.error || 'Failed to delete poll')
       }
-    } catch {
+    } catch (error) {
+      console.error('Error deleting poll:', error)
       toast.error('Failed to delete poll')
     } finally {
       setDeletingPollId(null)
