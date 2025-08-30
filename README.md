@@ -23,6 +23,10 @@ Place the images in `polling-app/public/screenshots/` with the exact filenames b
 
 ![Dashboard](polling-app/public/screenshots/dashboard.png)
 
+- Create
+
+![Create](polling-app/public/screenshots/create.png)
+
 ## Prompts and AI Responses (Representative)
 
 Below are condensed examples of the prompts used during this build and the assistant’s responses/actions. They’re grouped by milestone with links to the affected files.
