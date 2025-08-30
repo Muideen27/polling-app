@@ -90,13 +90,13 @@ return (
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base font-semibold">Your results</CardTitle>
+          <CardTitle className="text-base font-semibold">My polls</CardTitle>
           <BarChart3 className="h-5 w-5 text-primary" />
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">View performance of your recent polls.</p>
+          <p className="text-sm text-muted-foreground">View all your created polls and their results.</p>
           <div className="mt-2">
-            <Link href="#" className="text-sm underline">Open results</Link>
+            <Link href="/dashboard/polls" className="text-sm underline">View my polls</Link>
           </div>
         </CardContent>
       </Card>
