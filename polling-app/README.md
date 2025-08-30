@@ -29,14 +29,20 @@ Before using the poll creation feature, you need to set up the database tables i
 3. **Run the schema from `database-schema.sql`**:
    ```sql
    -- Copy and paste the contents of database-schema.sql
-   -- This creates the polls and poll_options tables
+   -- This creates the polls and votes tables
    ```
 
 **Required Tables:**
-- `polls(id, question, created_at, updated_at)`
-- `poll_options(id, poll_id, label, idx, created_at)`
+- `polls(id, user_id, question, options, created_at, expires_at, is_active)`
+- `votes(id, poll_id, user_id, option_index, created_at)`
 
-**Note:** The schema includes Row Level Security (RLS) policies and proper indexing for performance.
+**Key Features:**
+- **Options stored as TEXT[] array** in polls table for simplicity
+- **Votes table** for tracking user responses
+- **UUID primary keys** with automatic generation
+- **Row Level Security (RLS)** policies for data protection
+- **Proper indexing** for performance
+- **Unique constraint** to prevent duplicate votes per user per poll
 
 ## Learn More
 

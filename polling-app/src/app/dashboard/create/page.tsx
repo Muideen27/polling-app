@@ -1,13 +1,49 @@
+'use client'
+
 import { createPoll } from '@/lib/actions/polls'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
 
 export default function CreatePollPage() {
+  const [options, setOptions] = useState(['', '']) // Start with 2 required options
+
+  const addOption = () => {
+    if (options.length < 10) { // Maximum 10 options
+      setOptions([...options, ''])
+    }
+  }
+
+  const removeOption = (index: number) => {
+    if (options.length > 2) { // Keep minimum 2 options
+      const newOptions = options.filter((_, i) => i !== index)
+      setOptions(newOptions)
+    }
+  }
+
+  const updateOption = (index: number, value: string) => {
+    const newOptions = [...options]
+    newOptions[index] = value
+    setOptions(newOptions)
+  }
+
+  const handleSubmit = async (formData: FormData) => {
+    // Add the current options to the form data
+    options.forEach((option, index) => {
+      if (option.trim()) {
+        formData.append(`option_${index}`, option.trim())
+      }
+    })
+    
+    // Call the Server Action
+    await createPoll(formData)
+  }
+
   return (
     <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="max-w-4xl mx-auto">
@@ -34,7 +70,7 @@ export default function CreatePollPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={createPoll} className="space-y-6">
+            <form action={handleSubmit} className="space-y-6">
               {/* Question Field */}
               <div className="space-y-2">
                 <Label htmlFor="question" className="text-sm font-medium">
@@ -52,20 +88,47 @@ export default function CreatePollPage() {
               {/* Options Fields */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
-                  Poll Options * (at least 2)
+                  Poll Options * (at least 2, maximum 10)
                 </Label>
                 <div className="space-y-3">
-                  {Array.from({ length: 4 }).map((_, index) => (
+                  {options.map((option, index) => (
                     <div key={index} className="flex gap-2">
                       <Input
                         name={`option_${index}`}
                         placeholder={`Option ${index + 1}`}
+                        value={option}
+                        onChange={(e) => updateOption(index, e.target.value)}
                         className="flex-1"
                         required={index < 2}
                       />
+                      {options.length > 2 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => removeOption(index)}
+                          className="shrink-0"
+                          title="Remove option"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
+                
+                {/* Add Option Button */}
+                {options.length < 10 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addOption}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Option
+                  </Button>
+                )}
               </div>
 
               {/* Submit Button */}
