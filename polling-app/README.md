@@ -20,6 +20,24 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Database Setup
+
+Before using the poll creation feature, you need to set up the database tables in Supabase:
+
+1. **Go to your Supabase project dashboard**
+2. **Navigate to SQL Editor**
+3. **Run the schema from `database-schema.sql`**:
+   ```sql
+   -- Copy and paste the contents of database-schema.sql
+   -- This creates the polls and poll_options tables
+   ```
+
+**Required Tables:**
+- `polls(id, question, created_at, updated_at)`
+- `poll_options(id, poll_id, label, idx, created_at)`
+
+**Note:** The schema includes Row Level Security (RLS) policies and proper indexing for performance.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

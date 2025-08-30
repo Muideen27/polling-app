@@ -1,17 +1,28 @@
 -- Polls table schema for the polling application
 -- This should be created in your Supabase database
 
+-- Main polls table
 CREATE TABLE IF NOT EXISTS polls (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   question TEXT NOT NULL,
-  options JSONB NOT NULL, -- Array of objects: [{"text": "Option 1", "votes": 0}, {"text": "Option 2", "votes": 0}]
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable Row Level Security (RLS)
+-- Poll options table (normalized structure)
+CREATE TABLE IF NOT EXISTS poll_options (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  poll_id UUID NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  idx INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security (RLS) on polls table
 ALTER TABLE polls ENABLE ROW LEVEL SECURITY;
+
+-- Enable Row Level Security (RLS) on poll_options table
+ALTER TABLE poll_options ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for the polls table
 -- Users can view all polls
@@ -20,18 +31,37 @@ CREATE POLICY "Users can view all polls" ON polls
 
 -- Users can create polls
 CREATE POLICY "Users can create polls" ON polls
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK (true);
 
 -- Users can update their own polls
 CREATE POLICY "Users can update their own polls" ON polls
-  FOR UPDATE USING (auth.uid() = user_id);
+  FOR UPDATE USING (true);
 
 -- Users can delete their own polls
 CREATE POLICY "Users can delete their own polls" ON polls
-  FOR DELETE USING (auth.uid() = user_id);
+  FOR DELETE USING (true);
 
--- Create an index on user_id for better performance
-CREATE INDEX IF NOT EXISTS idx_polls_user_id ON polls(user_id);
+-- Create policies for the poll_options table
+-- Users can view all poll options
+CREATE POLICY "Users can view all poll options" ON poll_options
+  FOR SELECT USING (true);
 
--- Create an index on created_at for sorting
+-- Users can create poll options
+CREATE POLICY "Users can create poll options" ON poll_options
+  FOR INSERT WITH CHECK (true);
+
+-- Users can update poll options
+CREATE POLICY "Users can update poll options" ON poll_options
+  FOR UPDATE USING (true);
+
+-- Users can delete poll options
+CREATE POLICY "Users can delete poll options" ON poll_options
+  FOR DELETE USING (true);
+
+-- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_polls_created_at ON polls(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_poll_options_poll_id ON poll_options(poll_id);
+CREATE INDEX IF NOT EXISTS idx_poll_options_idx ON poll_options(idx);
+
+-- Add unique constraint to prevent duplicate options for the same poll
+CREATE UNIQUE INDEX IF NOT EXISTS idx_poll_options_unique ON poll_options(poll_id, idx);

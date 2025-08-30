@@ -17,6 +17,8 @@ export async function createPoll(formData: FormData): Promise<void> {
       }
     }
     
+    console.log('Creating poll with:', { question, options })
+    
     // Validation
     if (!question || question.trim().length < 5) {
       throw new Error('Question must be at least 5 characters long')
@@ -40,8 +42,13 @@ export async function createPoll(formData: FormData): Promise<void> {
 
     if (pollError) {
       console.error('Error creating poll:', pollError)
-      throw new Error('Failed to create poll. Please try again.')
+      if (pollError.code === '42P01') {
+        throw new Error('Database table "polls" does not exist. Please run the database schema setup.')
+      }
+      throw new Error(`Failed to create poll: ${pollError.message}`)
     }
+
+    console.log('Poll created successfully:', pollData)
 
     // Insert into poll_options table
     const pollOptions = options.map((option, idx) => ({
@@ -56,18 +63,22 @@ export async function createPoll(formData: FormData): Promise<void> {
 
     if (optionsError) {
       console.error('Error creating poll options:', optionsError)
+      if (optionsError.code === '42P01') {
+        // Clean up the poll if options creation fails
+        await supabase.from('polls').delete().eq('id', pollData.id)
+        throw new Error('Database table "poll_options" does not exist. Please run the database schema setup.')
+      }
       // Clean up the poll if options creation fails
       await supabase.from('polls').delete().eq('id', pollData.id)
-      throw new Error('Failed to create poll options. Please try again.')
+      throw new Error(`Failed to create poll options: ${optionsError.message}`)
     }
 
+    console.log('Poll options created successfully')
     revalidatePath('/dashboard')
     redirect('/dashboard')
   } catch (error) {
     console.error('Error creating poll:', error)
-    // For now, just revalidate and stay on the page
-    // In a real app, you might want to handle errors differently
-    revalidatePath('/dashboard')
+    // Re-throw the error to be handled by the form
     throw error
   }
 }
