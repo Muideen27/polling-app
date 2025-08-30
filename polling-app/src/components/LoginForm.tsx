@@ -50,7 +50,7 @@ export function LoginForm() {
     trigger('rememberMe')
   }
 
-  const onSubmit = async (data: FormData) => {
+  const  = async (data: FormData) => {
     setLoading(true)
     try {
       const { error, user } = await signIn(data.email, data.password)
@@ -107,7 +107,7 @@ export function LoginForm() {
       </CardHeader>
       
       <CardContent className="space-y-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form ={handleSubmit()} className="space-y-4">
           {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">

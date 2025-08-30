@@ -12,7 +12,7 @@ alwaysApply: true
 - Styling: Tailwind CSS + shadcn/ui
 - Forms: react-hook-form + zod
 - State: Prefer Server Components; use client state only where needed
-- QR Codes: qrcode.react
+- QR Codes: qrcode.react (or equivalent React QR lib)
 
 ## Folder Structure
 - Routes: `src/app/.../page.tsx`
@@ -21,34 +21,60 @@ alwaysApply: true
 - Lib & actions: `src/lib/*`  
   - Supabase clients: `supabase-server.ts`, `supabase-browser.ts`
   - Server Actions: `src/lib/actions/*`
+- Imports must use `@/` alias (no deep relative imports).
 
-## Core Rules
-1. **Forms → Server Actions**
-   - Do not fetch to `/api/*` for mutations. Use `action={serverAction}`.
+## Core Rules (enforced)
+1. **Forms → Server Actions (native)**
+   - Forms must submit via `<form action={serverAction}>`.
+   - **Never** call a Server Action inside a client `onSubmit`; **never** use `fetch('/api/*')` for core mutations.
+
 2. **Data Fetching → Server Components**
-   - Never use `useEffect` to fetch in a page. Fetch via Supabase in a Server Component.
+   - Never use `useEffect` to fetch page data. Fetch with Supabase in a Server Component.
+
 3. **Supabase**
-   - Use `@/lib/supabase-server` for server calls.
-   - Use `@/lib/supabase-browser` only for client auth/session.
+   - Server code (Server Actions, Server Components) must import and use `@/lib/supabase-server`.
+   - Client code (auth/session UI) may use `@/lib/supabase-browser`.
+   - Do not instantiate the browser client in server code.
    - Never hardcode secrets; always load from `.env.local`.
-4. **UI**
-   - Use shadcn/ui components (`Button`, `Card`, `Input`, `Label`) for forms.
-   - Accessible, minimal styling.
-5. **Naming**
-   - Components: PascalCase (`PollForm.tsx`).
-   - Functions/utilities: camelCase (`submitVote.ts`).
-6. **Commits**
-   - Use semantic prefixes: `feat:`, `fix:`, `chore:`, `docs:`, etc.
+
+4. **Mutations & Revalidation**
+   - After successful mutations, call `revalidatePath()` for affected routes.
+
+5. **UI**
+   - Use shadcn/ui components (`Button`, `Card`, `Input`, `Label`, etc.) for forms.
+   - Provide semantic labels, inline errors, and disabled states during submission.
+
+6. **Naming**
+   - Components: PascalCase (e.g., `PollForm.tsx`).
+   - Functions/utilities/actions: camelCase (e.g., `submitVote`).
+
+7. **Types**
+   - Exported functions/components must have explicit types. Prefer `async function name(): Promise<...>`.
 
 ## Data Model
-- polls(id, owner, question, created_at)
-- poll_options(id, poll_id, label, idx)
-- votes(id, poll_id, option_id, voter_fingerprint, created_at)
+- `polls(id, owner, question, created_at)`
+- `poll_options(id, poll_id, label, idx)`
+- `votes(id, poll_id, option_id, voter_fingerprint, created_at)`
 
-## Verification Checklist
-Before finishing a task, confirm:
-- ✅ Uses App Router + Server Components for fetching
-- ✅ Uses Server Actions for mutations
-- ✅ Uses Supabase for DB/auth
-- ✅ Uses shadcn/ui for UI
-- ✅ Secrets only in `.env.local`
+## Anti-Patterns (do NOT do these)
+- ❌ Posting forms to `/api/*` from the client for core mutations.
+- ❌ Calling Server Actions from client `onSubmit` handlers.
+- ❌ Using the browser Supabase client in Server Actions/Server Components.
+- ❌ Fetching page data in `useEffect` for SSR pages.
+- ❌ Deep relative imports (`../../..`) instead of `@/`.
+
+## Verification Checklist (use before finishing a task)
+- ✅ App Router + Server Components for data fetching
+- ✅ Server Actions for form submissions (native `<form action>` used)
+- ✅ Supabase server client used in server code; browser client in client code only
+- ✅ shadcn/ui components with labels/errors/disabled states
+- ✅ Secrets only from `.env.local`
+- ✅ `revalidatePath` called after mutations
+
+## Built-in Audit Prompts (paste into Cursor when reviewing)
+- **Compliance summary**
+  > Summarize whether `src/lib/actions/polls.ts` and `src/app/dashboard/create/page.tsx` follow these rules. Check: (1) server uses `supabaseServer`, (2) form uses `<form action={createPoll}>` (no client onSubmit), (3) `poll_options` inserts `(poll_id, label, idx)`, (4) no client fetch/API routes, (5) `revalidatePath` after mutation.
+
+- **Fix suggestions**
+  > List minimal changes required to make these files compliant with the rules above. Do not rewrite; only suggest exact edits.
+
