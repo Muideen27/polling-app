@@ -25,8 +25,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession()
         setUser(session?.user ?? null)
         setLoading(false)
-      } catch (error) {
-        console.error('Error getting initial session:', error)
+      } catch {
+        console.error('Error getting initial session')
         setLoading(false)
       }
     }
@@ -68,8 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       return { error: 'Sign in failed' }
-    } catch (error) {
-      console.error('Unexpected sign in error:', error)
+    } catch {
+      console.error('Unexpected sign in error')
       return { error: 'An unexpected error occurred' }
     }
   }
@@ -119,8 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       return { error: 'Sign up failed' }
-    } catch (error) {
-      console.error('Unexpected sign up error:', error)
+    } catch {
+      console.error('Unexpected sign up error')
       return { error: 'An unexpected error occurred' }
     }
   }
@@ -133,9 +133,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: error.message }
       }
       console.log('Resent confirmation:', data)
-      return { status: 'sent' }
-    } catch (error) {
-      console.error('Unexpected resend error:', error)
+      return { status: 'sent' as const }
+    } catch {
+      console.error('Unexpected resend error')
       return { error: 'An unexpected error occurred' }
     }
   }
@@ -144,8 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await supabase.auth.signOut()
       setUser(null)
-    } catch (error) {
-      console.error('Sign out error:', error)
+    } catch {
+      console.error('Sign out error')
     }
   }
 

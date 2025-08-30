@@ -25,7 +25,7 @@ const schema = z.object({
   if (data.password !== data.confirmPassword) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Passwords don't match",
+              message: "Passwords don&apos;t match",
       path: ["confirmPassword"],
     })
   }
@@ -128,7 +128,7 @@ export function RegisterForm() {
           router.push('/auth/login')
         }
       }
-    } catch (error) {
+    } catch {
       toast.error('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
