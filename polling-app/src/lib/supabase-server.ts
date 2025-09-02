@@ -1,43 +1,29 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function supabaseServer() {
   const cookieStore = await cookies()
-  
-  // Get all cookies and find Supabase session
-  const allCookies = cookieStore.getAll()
-  let accessToken = ''
-  let refreshToken = ''
-  
-  // Look for Supabase session cookies
-  for (const cookie of allCookies) {
-    if (cookie.name.includes('access_token')) {
-      accessToken = cookie.value
-    }
-    if (cookie.name.includes('refresh_token')) {
-      refreshToken = cookie.value
-    }
-  }
-  
-  const supabase = createClient(
+
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
-      }
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
     }
   )
-
-  // If we have an access token, set it
-  if (accessToken) {
-    await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken || ''
-    })
-  }
-
-  return supabase
 }

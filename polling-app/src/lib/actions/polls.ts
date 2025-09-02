@@ -143,7 +143,7 @@ export async function updatePoll(
       return { ok: false, error: 'Poll not found or you do not have permission to edit it' }
     }
 
-    // Update the poll
+    // Update the poll with new options array
     const { error: pollError } = await supabase
       .from('polls')
       .update({
@@ -157,34 +157,6 @@ export async function updatePoll(
     if (pollError) {
       console.error('Error updating poll:', pollError)
       return { ok: false, error: `Failed to update poll: ${pollError.message}` }
-    }
-
-    // Replace poll_options with new rows (poll_id, label, idx)
-    // First, delete existing options
-    const { error: deleteOptionsError } = await supabase
-      .from('poll_options')
-      .delete()
-      .eq('poll_id', pollId)
-
-    if (deleteOptionsError) {
-      console.error('Error deleting existing options:', deleteOptionsError)
-      return { ok: false, error: `Failed to update poll options: ${deleteOptionsError.message}` }
-    }
-
-    // Insert new options
-    const optionsToInsert = options.map((option, index) => ({
-      poll_id: pollId,
-      label: option,
-      idx: index
-    }))
-
-    const { error: insertOptionsError } = await supabase
-      .from('poll_options')
-      .insert(optionsToInsert)
-
-    if (insertOptionsError) {
-      console.error('Error inserting new options:', insertOptionsError)
-      return { ok: false, error: `Failed to update poll options: ${insertOptionsError.message}` }
     }
 
     revalidatePath('/dashboard/polls')
