@@ -2,8 +2,8 @@ import { supabaseServer } from '@/lib/supabase-server'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { User, BarChart3 as BarChartIcon, PlusCircle, ArrowLeft, Edit, Trash2 } from 'lucide-react'
-import { deletePoll } from '@/lib/actions/polls'
+import { User, BarChart3 as BarChartIcon, PlusCircle, ArrowLeft } from 'lucide-react'
+import { PollCard } from './PollCard'
 
 interface Poll {
   id: string
@@ -82,18 +82,6 @@ export default async function MyPollsPage() {
     .order('created_at', { ascending: false })
 
   const fullName = (user?.user_metadata?.full_name as string) || (user?.user_metadata?.name as string) || ''
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays === 1) return '1 day ago'
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    return date.toLocaleDateString()
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -176,44 +164,7 @@ export default async function MyPollsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {polls.map((poll) => (
-                  <Card key={poll.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg leading-tight line-clamp-2">
-                        {poll.question}
-                      </CardTitle>
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>{poll.options.length} options</span>
-                        <span>{formatDate(poll.created_at)}</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          asChild
-                        >
-                          <Link href={`/dashboard/polls/${poll.id}/edit`}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Link>
-                        </Button>
-                        <form action={deletePoll} className="flex-1">
-                          <input type="hidden" name="pollId" value={poll.id} />
-                          <Button
-                            type="submit"
-                            variant="destructive"
-                            size="sm"
-                            className="w-full"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </Button>
-                        </form>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <PollCard key={poll.id} poll={poll} />
                 ))}
               </div>
             )}

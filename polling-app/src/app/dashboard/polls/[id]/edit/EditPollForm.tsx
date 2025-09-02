@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Save, Plus, X } from 'lucide-react'
 import { updatePoll } from '@/lib/actions/polls'
+import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 interface Poll {
   id: string
@@ -23,6 +25,7 @@ interface EditPollFormProps {
 }
 
 export function EditPollForm({ poll }: EditPollFormProps) {
+  const router = useRouter()
   const [options, setOptions] = useState(poll.options.length >= 4 ? poll.options : [...poll.options, ...Array(4 - poll.options.length).fill('')])
   const [question, setQuestion] = useState(poll.question)
   const [expiresAt, setExpiresAt] = useState(poll.expires_at ? new Date(poll.expires_at).toISOString().slice(0, 16) : '')
@@ -80,13 +83,24 @@ export function EditPollForm({ poll }: EditPollFormProps) {
       
       if (!result.ok) {
         setError(result.error)
+        toast.error(result.error)
       } else {
-        // Success - redirect or show success message
-        window.location.href = '/dashboard/polls'
+        // Success - show notification and redirect
+        toast.success('Poll updated successfully! Redirecting to polls...', {
+          duration: 3000,
+          icon: '✅',
+        })
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+          router.push('/dashboard/polls')
+        }, 1500)
       }
     } catch (error) {
       console.error('Error updating poll:', error)
-      setError('An unexpected error occurred. Please try again.')
+      const errorMessage = 'An unexpected error occurred. Please try again.'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
