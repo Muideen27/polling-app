@@ -1,13 +1,9 @@
-'use client'
-
-import { useAuth } from '@/lib/auth-provider'
+import { supabaseServer } from '@/lib/supabase-server'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { User, BarChart3 as BarChartIcon, PlusCircle, ArrowLeft, Edit, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { toast } from 'react-hot-toast'
-import { supabase } from '@/lib/supabase-browser'
+import { deletePoll } from '@/lib/actions/polls'
 
 interface Poll {
   id: string
@@ -17,111 +13,13 @@ interface Poll {
   is_active: boolean
 }
 
-export default function MyPollsPage() {
-  const { user } = useAuth()
-  const [polls, setPolls] = useState<Poll[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [deletingPollId, setDeletingPollId] = useState<string | null>(null)
-
-  const fullName = (user?.user_metadata?.full_name as string) || (user?.user_metadata?.name as string) || ''
-
-  useEffect(() => {
-    if (user) {
-      fetchPolls()
-    }
-  }, [user])
-
-  const fetchPolls = async () => {
-    try {
-      setLoading(true)
-      
-      // Get the current session from Supabase browser client
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('No active session found')
-        return
-      }
-
-      // Call the API route with the access token
-      const response = await fetch('/api/polls', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to fetch polls')
-        return
-      }
-
-      const result = await response.json()
-      setPolls(result.polls)
-      setError('')
-    } catch {
-      setError('Failed to fetch polls')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDeletePoll = async (pollId: string) => {
-    if (!confirm('Are you sure you want to delete this poll? This action cannot be undone.')) {
-      return
-    }
-
-    setDeletingPollId(pollId)
-    try {
-      // Get the current session from Supabase browser client
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        toast.error('No active session found')
-        return
-      }
-
-      // Call the API route with the access token
-      const response = await fetch(`/api/polls/${pollId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        toast.error(errorData.error || 'Failed to delete poll')
-        return
-      }
-
-      const result = await response.json()
-      if (result.success) {
-        toast.success('Poll deleted successfully')
-        setPolls(polls.filter(poll => poll.id !== pollId))
-      } else {
-        toast.error(result.error || 'Failed to delete poll')
-      }
-    } catch (error) {
-      console.error('Error deleting poll:', error)
-      toast.error('Failed to delete poll')
-    } finally {
-      setDeletingPollId(null)
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays === 1) return '1 day ago'
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    return date.toLocaleDateString()
-  }
-
-  if (!user) {
+export default async function MyPollsPage() {
+  const supabase = await supabaseServer()
+  
+  // Get the current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (userError || !user) {
     return (
       <div className="min-h-screen bg-background">
         {/* Top Navigation Bar */}
@@ -174,6 +72,27 @@ export default function MyPollsPage() {
         </main>
       </div>
     )
+  }
+
+  // Fetch polls for the current user
+  const { data: polls, error: pollsError } = await supabase
+    .from('polls')
+    .select('id, question, options, created_at, is_active')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  const fullName = (user?.user_metadata?.full_name as string) || (user?.user_metadata?.name as string) || ''
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffTime = Math.abs(now.getTime() - date.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 1) return '1 day ago'
+    if (diffDays < 7) return `${diffDays} days ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+    return date.toLocaleDateString()
   }
 
   return (
@@ -232,81 +151,73 @@ export default function MyPollsPage() {
           </div>
 
           {/* Error Message */}
-          {error && (
+          {pollsError && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 font-medium">{error}</p>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {loading && (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground mt-4">Loading your polls...</p>
+              <p className="text-red-800 font-medium">Failed to load polls: {pollsError.message}</p>
             </div>
           )}
 
           {/* Polls Grid */}
-          {!loading && !error && (
-            <div className="space-y-6">
-              {polls.length === 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">No polls yet</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4">
-                      You haven&apos;t created any polls yet. Start by creating your first poll!
-                    </p>
-                    <Button asChild>
-                      <Link href="/dashboard/create">Create Your First Poll</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {polls.map((poll) => (
-                    <Card key={poll.id} className="hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg leading-tight line-clamp-2">
-                          {poll.question}
-                        </CardTitle>
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <span>{poll.options.length} options</span>
-                          <span>{formatDate(poll.created_at)}</span>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="flex gap-2">
+          <div className="space-y-6">
+            {!polls || polls.length === 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">No polls yet</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    You haven&apos;t created any polls yet. Start by creating your first poll!
+                  </p>
+                  <Button asChild>
+                    <Link href="/dashboard/create">Create Your First Poll</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {polls.map((poll) => (
+                  <Card key={poll.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg leading-tight line-clamp-2">
+                        {poll.question}
+                      </CardTitle>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>{poll.options.length} options</span>
+                        <span>{formatDate(poll.created_at)}</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          asChild
+                        >
+                          <Link href={`/dashboard/polls/${poll.id}/edit`}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Link>
+                        </Button>
+                        <form action={deletePoll} className="flex-1">
+                          <input type="hidden" name="pollId" value={poll.id} />
                           <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            asChild
-                          >
-                            <Link href={`/dashboard/polls/${poll.id}/edit`}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Link>
-                          </Button>
-                          <Button
+                            type="submit"
                             variant="destructive"
                             size="sm"
-                            className="flex-1"
-                            onClick={() => handleDeletePoll(poll.id)}
-                            disabled={deletingPollId === poll.id}
+                            className="w-full"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            {deletingPollId === poll.id ? 'Deleting...' : 'Delete'}
+                            Delete
                           </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                        </form>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

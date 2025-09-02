@@ -198,7 +198,7 @@ export async function updatePoll(
   }
 }
 
-export async function deletePoll(pollId: string): Promise<{ success: boolean; error?: string }> {
+export async function deletePoll(formData: FormData): Promise<void> {
   try {
     const supabase = await supabaseServer()
     
@@ -206,6 +206,12 @@ export async function deletePoll(pollId: string): Promise<{ success: boolean; er
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
       throw new Error('You must be logged in to delete polls')
+    }
+
+    // Get pollId from form data
+    const pollId = formData.get('pollId') as string
+    if (!pollId) {
+      throw new Error('Poll ID is required')
     }
 
     // Delete the poll (votes will be cascaded due to CASCADE constraint)
@@ -221,12 +227,8 @@ export async function deletePoll(pollId: string): Promise<{ success: boolean; er
     }
 
     revalidatePath('/dashboard/polls')
-    return { success: true }
   } catch (error) {
     console.error('Error deleting poll:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to delete poll' 
-    }
+    throw error
   }
 }
