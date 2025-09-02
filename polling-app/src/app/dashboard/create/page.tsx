@@ -10,10 +10,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useState } from 'react'
 import { createPoll } from '@/lib/actions/polls'
+import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 export default function CreatePollPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [options, setOptions] = useState(['', '', '', '']) // Start with 4 required options
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const fullName = (user?.user_metadata?.full_name as string) || (user?.user_metadata?.name as string) || ''
 
@@ -93,15 +97,36 @@ export default function CreatePollPage() {
   }
 
   const handleSubmit = async (formData: FormData) => {
-    // Add the current options to the form data
-    options.forEach((option, index) => {
-      if (option.trim()) {
-        formData.append(`option_${index}`, option.trim())
-      }
-    })
-    
-    // Call the Server Action
-    await createPoll(formData)
+    try {
+      setIsSubmitting(true)
+      
+      // Add the current options to the form data
+      options.forEach((option, index) => {
+        if (option.trim()) {
+          formData.append(`option_${index}`, option.trim())
+        }
+      })
+      
+      // Call the Server Action
+      await createPoll(formData)
+      
+      // Show success notification
+      toast.success('Poll created successfully! Redirecting to dashboard...', {
+        duration: 3000,
+        icon: '✅',
+      })
+      
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 1500)
+      
+    } catch (error) {
+      console.error('Error creating poll:', error)
+      toast.error('Failed to create poll. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -223,8 +248,8 @@ export default function CreatePollPage() {
                 </div>
 
                 {/* Submit Button */}
-                <Button type="submit" className="w-full">
-                  Create Poll
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Creating Poll...' : 'Create Poll'}
                 </Button>
               </form>
             </CardContent>

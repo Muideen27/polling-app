@@ -47,7 +47,7 @@ export async function createPoll(formData: FormData): Promise<void> {
       throw new Error(`Failed to create poll: ${pollError.message}`)
     }
     revalidatePath('/dashboard')
-    redirect('/dashboard')
+    // Don't redirect here - let the client handle it with toast notification
   } catch (error) {
     console.error('Error creating poll:', error)
     revalidatePath('/dashboard') // Revalidate even on error to clear form state
