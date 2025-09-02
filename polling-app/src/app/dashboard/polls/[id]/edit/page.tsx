@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-provider'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -113,15 +113,32 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
     setError('')
 
     try {
-      // Validate form
-      if (!question.trim() || question.trim().length < 5) {
+      // Stronger validation
+      const trimmedQuestion = question.trim()
+      if (!trimmedQuestion || trimmedQuestion.length < 5) {
         setError('Question must be at least 5 characters long')
         return
       }
 
-      const validOptions = options.filter(option => option.trim().length > 0)
-      if (validOptions.length < 2) {
+      // Trim and filter options, remove duplicates (case-insensitive)
+      const trimmedOptions = options
+        .map(option => option.trim())
+        .filter(option => option.length > 0)
+      
+      if (trimmedOptions.length < 2) {
         setError('At least 2 options are required')
+        return
+      }
+
+      if (trimmedOptions.length > 10) {
+        setError('Maximum 10 options allowed')
+        return
+      }
+
+      // Check for duplicate options (case-insensitive)
+      const uniqueOptions = [...new Set(trimmedOptions.map(opt => opt.toLowerCase()))]
+      if (uniqueOptions.length !== trimmedOptions.length) {
+        setError('Duplicate options are not allowed')
         return
       }
 
@@ -140,8 +157,8 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
           'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          question: question.trim(),
-          options: validOptions,
+          question: trimmedQuestion,
+          options: trimmedOptions,
           expires_at: expiresAt || null,
           is_active: isActive
         })
@@ -395,12 +412,14 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Error Display */}
-                {error && (
-                  <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                    {error}
-                  </div>
-                )}
+                {/* Error Display with aria-live region */}
+                <div aria-live="polite" aria-atomic="true">
+                  {error && (
+                    <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md" role="alert">
+                      {error}
+                    </div>
+                  )}
+                </div>
 
                 {/* Question Field */}
                 <div className="space-y-2">
@@ -412,8 +431,10 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                     onChange={(e) => setQuestion(e.target.value)}
                     className="min-h-[100px]"
                     required
+                    aria-describedby="question-help"
+                    minLength={5}
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p id="question-help" className="text-xs text-muted-foreground">
                     Minimum 5 characters required
                   </p>
                 </div>
@@ -427,8 +448,9 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                       variant="outline"
                       size="sm"
                       onClick={addOption}
-                      disabled={options.length >= 10}
+                      disabled={options.length >= 10 || saving}
                       className="inline-flex items-center gap-2"
+                      aria-label="Add new option"
                     >
                       <Plus className="h-4 w-4" />
                       Add Option
@@ -439,10 +461,12 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                     {options.map((option, index) => (
                       <div key={index} className="flex items-center gap-2">
                         <Input
+                          id={`option-${index}`}
                           placeholder={`Option ${index + 1}`}
                           value={option}
                           onChange={(e) => updateOption(index, e.target.value)}
                           required
+                          aria-describedby="options-help"
                         />
                         {options.length > 2 && (
                           <Button
@@ -451,6 +475,8 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                             size="sm"
                             onClick={() => removeOption(index)}
                             className="px-2"
+                            aria-label={`Remove option ${index + 1}`}
+                            disabled={saving}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -459,8 +485,8 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                     ))}
                   </div>
                   
-                  <p className="text-xs text-muted-foreground">
-                    Minimum 2 options, maximum 10. Empty options will be removed.
+                  <p id="options-help" className="text-xs text-muted-foreground">
+                    Minimum 2 options, maximum 10. Empty options will be removed. Duplicate options are not allowed.
                   </p>
                 </div>
 
@@ -490,43 +516,45 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                       checked={isActive}
                       onChange={(e) => setIsActive(e.target.checked)}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      disabled={saving}
+                      aria-describedby="active-help"
                     />
                     <Label htmlFor="is_active">Poll is active</Label>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p id="active-help" className="text-xs text-muted-foreground">
                     Inactive polls won&apos;t accept new votes
                   </p>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1"
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    asChild
-                  >
-                    <Link href="/dashboard/polls">Cancel</Link>
-                  </Button>
-                </div>
               </CardContent>
+              <CardFooter className="flex gap-3">
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  asChild
+                  disabled={saving}
+                >
+                  <Link href="/dashboard/polls">Cancel</Link>
+                </Button>
+              </CardFooter>
             </Card>
           </form>
         </div>
