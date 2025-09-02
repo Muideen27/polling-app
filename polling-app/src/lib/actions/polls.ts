@@ -86,6 +86,118 @@ export async function getUserPolls(): Promise<{ polls: Array<{ id: string; quest
   }
 }
 
+export async function updatePoll(
+  pollId: string,
+  formData: FormData
+): Promise<{ ok: true; data?: { id: string } } | { ok: false; error: string }> {
+  try {
+    const supabase = await supabaseServer()
+    
+    // Get the current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return { ok: false, error: 'You must be logged in to update polls' }
+    }
+
+    // Extract and validate form data
+    const question = formData.get('question') as string
+    const options: string[] = []
+    
+    // Extract options from form data
+    for (let i = 0; i < 10; i++) {
+      const option = formData.get(`option_${i}`) as string
+      if (option && option.trim()) {
+        options.push(option.trim())
+      }
+    }
+
+    // Server-side validation
+    const trimmedQuestion = question?.trim() || ''
+    if (!trimmedQuestion || trimmedQuestion.length < 5) {
+      return { ok: false, error: 'Question must be at least 5 characters long' }
+    }
+
+    if (options.length < 2) {
+      return { ok: false, error: 'At least 2 options are required' }
+    }
+
+    if (options.length > 10) {
+      return { ok: false, error: 'Maximum 10 options allowed' }
+    }
+
+    // Deduplicate options (case-insensitive)
+    const uniqueOptions = [...new Set(options.map(opt => opt.toLowerCase()))]
+    if (uniqueOptions.length !== options.length) {
+      return { ok: false, error: 'Duplicate options are not allowed' }
+    }
+
+    // Verify poll ownership
+    const { data: existingPoll, error: fetchError } = await supabase
+      .from('polls')
+      .select('id, user_id')
+      .eq('id', pollId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError || !existingPoll) {
+      return { ok: false, error: 'Poll not found or you do not have permission to edit it' }
+    }
+
+    // Update the poll
+    const { error: pollError } = await supabase
+      .from('polls')
+      .update({
+        question: trimmedQuestion,
+        options: options,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', pollId)
+      .eq('user_id', user.id)
+
+    if (pollError) {
+      console.error('Error updating poll:', pollError)
+      return { ok: false, error: `Failed to update poll: ${pollError.message}` }
+    }
+
+    // Replace poll_options with new rows (poll_id, label, idx)
+    // First, delete existing options
+    const { error: deleteOptionsError } = await supabase
+      .from('poll_options')
+      .delete()
+      .eq('poll_id', pollId)
+
+    if (deleteOptionsError) {
+      console.error('Error deleting existing options:', deleteOptionsError)
+      return { ok: false, error: `Failed to update poll options: ${deleteOptionsError.message}` }
+    }
+
+    // Insert new options
+    const optionsToInsert = options.map((option, index) => ({
+      poll_id: pollId,
+      label: option,
+      idx: index
+    }))
+
+    const { error: insertOptionsError } = await supabase
+      .from('poll_options')
+      .insert(optionsToInsert)
+
+    if (insertOptionsError) {
+      console.error('Error inserting new options:', insertOptionsError)
+      return { ok: false, error: `Failed to update poll options: ${insertOptionsError.message}` }
+    }
+
+    revalidatePath('/dashboard/polls')
+    return { ok: true, data: { id: pollId } }
+  } catch (error) {
+    console.error('Error updating poll:', error)
+    return { 
+      ok: false, 
+      error: error instanceof Error ? error.message : 'Failed to update poll' 
+    }
+  }
+}
+
 export async function deletePoll(pollId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await supabaseServer()
