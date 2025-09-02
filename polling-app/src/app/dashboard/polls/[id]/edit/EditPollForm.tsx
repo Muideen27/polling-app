@@ -24,7 +24,11 @@ interface EditPollFormProps {
 
 export function EditPollForm({ poll }: EditPollFormProps) {
   const [options, setOptions] = useState(poll.options.length >= 4 ? poll.options : [...poll.options, ...Array(4 - poll.options.length).fill('')])
+  const [question, setQuestion] = useState(poll.question)
+  const [expiresAt, setExpiresAt] = useState(poll.expires_at ? new Date(poll.expires_at).toISOString().slice(0, 16) : '')
+  const [isActive, setIsActive] = useState(poll.is_active)
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const addOption = () => {
     if (options.length < 10) {
@@ -46,18 +50,45 @@ export function EditPollForm({ poll }: EditPollFormProps) {
   }
 
   const handleSubmit = async (formData: FormData) => {
-    // Add the current options to the form data
-    options.forEach((option, index) => {
-      if (option.trim()) {
-        formData.append(`option_${index}`, option.trim())
+    try {
+      setIsSubmitting(true)
+      setError('') // Clear previous errors
+      
+      // Create a new FormData with current state values
+      const newFormData = new FormData()
+      newFormData.append('question', question)
+      newFormData.append('expires_at', expiresAt)
+      newFormData.append('is_active', isActive.toString())
+      
+      // Add the current options to the form data
+      options.forEach((option, index) => {
+        if (option.trim()) {
+          newFormData.append(`option_${index}`, option.trim())
+        }
+      })
+      
+      console.log('Submitting poll update:', {
+        pollId: poll.id,
+        question,
+        options: options.filter(opt => opt.trim()),
+        expiresAt,
+        isActive
+      })
+      
+      // Call the Server Action
+      const result = await updatePoll(poll.id, newFormData)
+      
+      if (!result.ok) {
+        setError(result.error)
+      } else {
+        // Success - redirect or show success message
+        window.location.href = '/dashboard/polls'
       }
-    })
-    
-    // Call the Server Action
-    const result = await updatePoll(poll.id, formData)
-    
-    if (!result.ok) {
-      setError(result.error)
+    } catch (error) {
+      console.error('Error updating poll:', error)
+      setError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -87,7 +118,8 @@ export function EditPollForm({ poll }: EditPollFormProps) {
               id="question"
               name="question"
               placeholder="What would you like to ask?"
-              defaultValue={poll.question}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
               className="min-h-[100px]"
               required
               aria-describedby="question-help"
@@ -123,7 +155,7 @@ export function EditPollForm({ poll }: EditPollFormProps) {
                     id={`option-${index}`}
                     name={`option_${index}`}
                     placeholder={`Option ${index + 1}`}
-                    defaultValue={option}
+                    value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
                     required
                     aria-describedby="options-help"
@@ -160,7 +192,8 @@ export function EditPollForm({ poll }: EditPollFormProps) {
                 id="expires_at"
                 name="expires_at"
                 type="datetime-local"
-                defaultValue={poll.expires_at ? new Date(poll.expires_at).toISOString().slice(0, 16) : ''}
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 Leave empty for no expiration
@@ -173,7 +206,8 @@ export function EditPollForm({ poll }: EditPollFormProps) {
                 id="is_active"
                 name="is_active"
                 type="checkbox"
-                defaultChecked={poll.is_active}
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 aria-describedby="active-help"
               />
@@ -189,9 +223,10 @@ export function EditPollForm({ poll }: EditPollFormProps) {
           <Button
             type="submit"
             className="flex-1"
+            disabled={isSubmitting}
           >
             <Save className="h-4 w-4 mr-2" />
-            Save Changes
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>
           
           <Button
