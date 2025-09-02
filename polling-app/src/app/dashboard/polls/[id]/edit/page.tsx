@@ -9,9 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { User, BarChart3 as BarChartIcon, ArrowLeft, Save, Plus, X, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'react-hot-toast'
+import { updatePoll } from '@/lib/actions/polls'
 import { supabase } from '@/lib/supabase-browser'
-import { useRouter } from 'next/navigation'
 
 interface Poll {
   id: string
@@ -24,11 +23,9 @@ interface Poll {
 
 export default function EditPollPage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuth()
-  const router = useRouter()
   const [pollId, setPollId] = useState<string>('')
   const [poll, setPoll] = useState<Poll | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   
   // Form state
@@ -104,88 +101,19 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
     setOptions(newOptions)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (formData: FormData) => {
+    // Add the current options to the form data
+    options.forEach((option, index) => {
+      if (option.trim()) {
+        formData.append(`option_${index}`, option.trim())
+      }
+    })
     
-    if (!poll) return
-
-    setSaving(true)
-    setError('')
-
-    try {
-      // Stronger validation
-      const trimmedQuestion = question.trim()
-      if (!trimmedQuestion || trimmedQuestion.length < 5) {
-        setError('Question must be at least 5 characters long')
-        return
-      }
-
-      // Trim and filter options, remove duplicates (case-insensitive)
-      const trimmedOptions = options
-        .map(option => option.trim())
-        .filter(option => option.length > 0)
-      
-      if (trimmedOptions.length < 2) {
-        setError('At least 2 options are required')
-        return
-      }
-
-      if (trimmedOptions.length > 10) {
-        setError('Maximum 10 options allowed')
-        return
-      }
-
-      // Check for duplicate options (case-insensitive)
-      const uniqueOptions = [...new Set(trimmedOptions.map(opt => opt.toLowerCase()))]
-      if (uniqueOptions.length !== trimmedOptions.length) {
-        setError('Duplicate options are not allowed')
-        return
-      }
-
-      // Get session token
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('No active session found')
-        return
-      }
-
-      // Update the poll
-      const response = await fetch(`/api/polls/${pollId}/update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          question: trimmedQuestion,
-          options: trimmedOptions,
-          expires_at: expiresAt || null,
-          is_active: isActive
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to update poll')
-        return
-      }
-
-      const result = await response.json()
-      
-      if (result.success) {
-        toast.success('Poll updated successfully!')
-        // Redirect back to polls page after a short delay
-        setTimeout(() => {
-          router.push('/dashboard/polls')
-        }, 1500)
-      } else {
-        setError(result.error || 'Failed to update poll')
-      }
-    } catch (error) {
-      console.error('Error updating poll:', error)
-      setError('Failed to update poll. Please try again.')
-    } finally {
-      setSaving(false)
+    // Call the Server Action
+    const result = await updatePoll(pollId, formData)
+    
+    if (!result.ok) {
+      setError(result.error)
     }
   }
 
@@ -403,7 +331,7 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
           </div>
 
           {/* Edit Form */}
-          <form onSubmit={handleSubmit}>
+          <form action={handleSubmit}>
             <Card className="w-full max-w-2xl mx-auto">
               <CardHeader>
                 <CardTitle>Edit Poll</CardTitle>
@@ -412,6 +340,9 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Hidden pollId field */}
+                <input type="hidden" name="pollId" value={pollId} />
+                
                 {/* Error Display with aria-live region */}
                 <div aria-live="polite" aria-atomic="true">
                   {error && (
@@ -426,6 +357,7 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                   <Label htmlFor="question">Poll Question</Label>
                   <Textarea
                     id="question"
+                    name="question"
                     placeholder="What would you like to ask?"
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
@@ -448,7 +380,7 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                       variant="outline"
                       size="sm"
                       onClick={addOption}
-                      disabled={options.length >= 10 || saving}
+                      disabled={options.length >= 10}
                       className="inline-flex items-center gap-2"
                       aria-label="Add new option"
                     >
@@ -462,6 +394,7 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                       <div key={index} className="flex items-center gap-2">
                         <Input
                           id={`option-${index}`}
+                          name={`option_${index}`}
                           placeholder={`Option ${index + 1}`}
                           value={option}
                           onChange={(e) => updateOption(index, e.target.value)}
@@ -476,7 +409,7 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                             onClick={() => removeOption(index)}
                             className="px-2"
                             aria-label={`Remove option ${index + 1}`}
-                            disabled={saving}
+
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -499,6 +432,7 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                     <Label htmlFor="expires_at">Expiration Date (Optional)</Label>
                     <Input
                       id="expires_at"
+                      name="expires_at"
                       type="datetime-local"
                       value={expiresAt}
                       onChange={(e) => setExpiresAt(e.target.value)}
@@ -512,11 +446,11 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
                   <div className="flex items-center space-x-2">
                     <input
                       id="is_active"
+                      name="is_active"
                       type="checkbox"
                       checked={isActive}
                       onChange={(e) => setIsActive(e.target.checked)}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      disabled={saving}
                       aria-describedby="active-help"
                     />
                     <Label htmlFor="is_active">Poll is active</Label>
@@ -530,27 +464,16 @@ export default function EditPollPage({ params }: { params: Promise<{ id: string 
               <CardFooter className="flex gap-3">
                 <Button
                   type="submit"
-                  disabled={saving}
                   className="flex-1"
                 >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Changes
-                    </>
-                  )}
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
                 </Button>
                 
                 <Button
                   type="button"
                   variant="outline"
                   asChild
-                  disabled={saving}
                 >
                   <Link href="/dashboard/polls">Cancel</Link>
                 </Button>

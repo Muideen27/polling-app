@@ -9,16 +9,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase-browser'
+import { createPoll } from '@/lib/actions/polls'
 
 export default function CreatePollPage() {
   const { user } = useAuth()
-  const router = useRouter()
-  const [options, setOptions] = useState(['', '']) // Start with 2 required options
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [options, setOptions] = useState(['', '', '', '']) // Start with 4 required options
 
   const fullName = (user?.user_metadata?.full_name as string) || (user?.user_metadata?.name as string) || ''
 
@@ -98,53 +93,15 @@ export default function CreatePollPage() {
   }
 
   const handleSubmit = async (formData: FormData) => {
-    setIsSubmitting(true)
-    setError('')
-    setSuccess('')
-
-    try {
-      // Get the current session from Supabase browser client
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('No active session found')
-        return
+    // Add the current options to the form data
+    options.forEach((option, index) => {
+      if (option.trim()) {
+        formData.append(`option_${index}`, option.trim())
       }
-
-      // Add the current options to the form data
-      options.forEach((option, index) => {
-        if (option.trim()) {
-          formData.append(`option_${index}`, option.trim())
-        }
-      })
-      
-      // Call the API route with the access token
-      const response = await fetch('/api/polls/create', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to create poll')
-        return
-      }
-
-      // Show success message
-      setSuccess('Poll created successfully!')
-      
-      // Redirect to dashboard after a short delay
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 1500)
-      
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to create poll. Please try again.')
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
+    
+    // Call the Server Action
+    await createPoll(formData)
   }
 
   return (
@@ -192,19 +149,7 @@ export default function CreatePollPage() {
             </p>
           </div>
 
-          {/* Success/Error Messages */}
-          {success && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-800 font-medium">{success}</p>
-              <p className="text-green-600 text-sm mt-1">Redirecting to dashboard...</p>
-            </div>
-          )}
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 font-medium">{error}</p>
-            </div>
-          )}
 
           {/* Poll Form */}
           <Card className="w-full max-w-2xl mx-auto">
@@ -227,7 +172,7 @@ export default function CreatePollPage() {
                     placeholder="What would you like to ask?"
                     className="min-h-[100px]"
                     required
-                    disabled={isSubmitting}
+
                   />
                 </div>
 
@@ -246,7 +191,6 @@ export default function CreatePollPage() {
                           onChange={(e) => updateOption(index, e.target.value)}
                           className="flex-1"
                           required={index < 2}
-                          disabled={isSubmitting}
                         />
                         {options.length > 2 && (
                           <Button
@@ -256,7 +200,6 @@ export default function CreatePollPage() {
                             onClick={() => removeOption(index)}
                             className="shrink-0"
                             title="Remove option"
-                            disabled={isSubmitting}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -272,7 +215,6 @@ export default function CreatePollPage() {
                       variant="outline"
                       onClick={addOption}
                       className="w-full"
-                      disabled={isSubmitting}
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Option
@@ -281,8 +223,8 @@ export default function CreatePollPage() {
                 </div>
 
                 {/* Submit Button */}
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? 'Creating Poll...' : 'Create Poll'}
+                <Button type="submit" className="w-full">
+                  Create Poll
                 </Button>
               </form>
             </CardContent>
