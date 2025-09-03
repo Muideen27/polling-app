@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Edit, Trash2, Eye, Loader2, AlertTriangle } from 'lucide-react'
+import { Edit, Trash2, Eye, Loader2, AlertTriangle, Copy, QrCode } from 'lucide-react'
 import { deletePoll } from '@/lib/actions/polls'
+import { CopyLink } from '@/components/CopyLink'
 import toast from 'react-hot-toast'
 
 interface Poll {
@@ -27,6 +28,8 @@ export function PollCard({ poll }: PollCardProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [confirmText, setConfirmText] = useState('')
+  
+  const pollUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/poll/${poll.id}`
 
   const handleViewPoll = () => {
     setIsViewing(true)
@@ -92,49 +95,68 @@ export function PollCard({ poll }: PollCardProps) {
       </CardHeader>
       <CardContent className="pt-0">
         {!showDeleteConfirm ? (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              asChild
-              disabled={isViewing}
-            >
-              <Link href={`/poll/${poll.id}`} onClick={handleViewPoll}>
-                {isViewing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4 mr-2" />
-                    View
-                  </>
-                )}
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              asChild
-            >
-              <Link href={`/dashboard/polls/${poll.id}/edit`}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Link>
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="flex-1"
-              onClick={handleDeleteClick}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
+          <div className="space-y-3">
+            {/* Main action buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                asChild
+                disabled={isViewing}
+              >
+                <Link href={`/poll/${poll.id}`} onClick={handleViewPoll}>
+                  {isViewing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </>
+                  )}
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                asChild
+              >
+                <Link href={`/dashboard/polls/${poll.id}/edit`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Link>
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="flex-1"
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+            
+            {/* Sharing buttons */}
+            <div className="flex gap-2">
+              <CopyLink url={pollUrl} />
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="flex-1"
+              >
+                <Link href={`/poll/${poll.id}`}>
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Show QR
+                </Link>
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4 p-4 bg-red-50 border border-red-200 rounded-lg">
