@@ -1,3 +1,7 @@
+// BEFORE SNAPSHOT – do not modify
+// This is a snapshot of the poll page implementation before day 8 refactoring
+// Created: Day 8 - Before refactoring
+
 import { supabaseServer } from '@/lib/supabase-server'
 import { submitVote } from '@/lib/actions/votes'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,15 +10,14 @@ import { Fingerprint } from '@/components/Fingerprint'
 import { QR } from '@/components/QR'
 import { CopyLink } from '@/components/CopyLink'
 import { notFound } from 'next/navigation'
-import { normalizeResults, type OptionWithCount } from '@/lib/poll-utils'
 
 interface PollData {
   id: string
   question: string
   options: Array<{
-    id: number
-    label: string
-    count: number
+    index: number
+    text: string
+    vote_count: number
   }>
   total_votes: number
 }
@@ -45,102 +48,28 @@ async function getPollData(pollId: string): Promise<PollData | null> {
     return null
   }
 
-  // Single pass: build options with vote counts and compute total
+  // Count votes per option
   const voteCounts: { [key: number]: number } = {}
-  let totalVotes = 0
-
-  // Count votes per option in single pass
-  votes?.forEach((vote: { option_index: number }) => {
+  votes?.forEach(vote => {
     voteCounts[vote.option_index] = (voteCounts[vote.option_index] || 0) + 1
-    totalVotes++
   })
 
-  // Build options with counts in single pass
-  const optionsWithCounts: OptionWithCount[] = poll.options.map((optionText: string, index: number) => ({
-    id: index,
-    label: optionText,
-    count: voteCounts[index] || 0
+  const totalVotes = votes?.length || 0
+
+  // Build options with vote counts
+  const optionsWithVotes = poll.options.map((optionText: string, index: number) => ({
+    index,
+    text: optionText,
+    vote_count: voteCounts[index] || 0
   }))
 
   return {
     id: poll.id,
     question: poll.question,
-    options: optionsWithCounts,
+    options: optionsWithVotes,
     total_votes: totalVotes
   }
 }
-
-// Server Action wrapper to handle return type
-async function handleVoteSubmit(formData: FormData) {
-  'use server'
-  await submitVote(formData)
-}
-
-// Presentational components to reduce JSX nesting
-function VoteForm({ pollId, options }: { pollId: string; options: PollData['options'] }) {
-  return (
-    <form action={handleVoteSubmit} className="space-y-6">
-      <input type="hidden" name="pollId" value={pollId} />
-      <Fingerprint />
-      
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-foreground">Select your answer:</p>
-        {options.map((option) => (
-          <div key={option.id} className="flex items-center space-x-3">
-            <input
-              type="radio"
-              id={`option-${option.id}`}
-              name="optionId"
-              value={option.id}
-              className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-              required
-            />
-            <label
-              htmlFor={`option-${option.id}`}
-              className="text-sm font-medium text-foreground cursor-pointer flex-1"
-            >
-              {option.label}
-            </label>
-          </div>
-        ))}
-      </div>
-
-      <Button type="submit" className="w-full">
-        Submit Vote
-      </Button>
-    </form>
-  )
-}
-
-function ResultsList({ options, totalVotes }: { options: PollData['options']; totalVotes: number }) {
-  const normalizedResults = normalizeResults(options)
-  
-  return (
-    <CardContent className="space-y-4">
-      {normalizedResults.rows.map((option) => (
-        <div key={option.id} className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-foreground">
-              {option.label}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {option.count} votes ({option.percent})
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300" 
-              style={{ width: option.percent }}
-            ></div>
-          </div>
-        </div>
-      ))}
-    </CardContent>
-  )
-}
-
-// Constants outside component body to avoid recreation
-const POLL_URL_BASE = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
 export default async function PollPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -150,7 +79,7 @@ export default async function PollPage({ params }: { params: Promise<{ id: strin
     notFound()
   }
 
-  const pollUrl = `${POLL_URL_BASE}/poll/${id}`
+  const pollUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/poll/${id}`
 
   return (
     <div className="min-h-screen bg-background">
@@ -173,7 +102,37 @@ export default async function PollPage({ params }: { params: Promise<{ id: strin
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <VoteForm pollId={pollData.id} options={pollData.options} />
+              {/* Voting Form */}
+              <form action={submitVote} className="space-y-6">
+                <input type="hidden" name="pollId" value={pollData.id} />
+                <Fingerprint />
+                
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-foreground">Select your answer:</p>
+                  {pollData.options.map((option) => (
+                    <div key={option.index} className="flex items-center space-x-3">
+                      <input
+                        type="radio"
+                        id={`option-${option.index}`}
+                        name="optionId"
+                        value={option.index}
+                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                        required
+                      />
+                      <label
+                        htmlFor={`option-${option.index}`}
+                        className="text-sm font-medium text-foreground cursor-pointer flex-1"
+                      >
+                        {option.text}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                <Button type="submit" className="w-full">
+                  Submit Vote
+                </Button>
+              </form>
             </CardContent>
           </Card>
 
@@ -185,7 +144,32 @@ export default async function PollPage({ params }: { params: Promise<{ id: strin
                 {pollData.total_votes} {pollData.total_votes === 1 ? 'vote' : 'votes'} total
               </p>
             </CardHeader>
-            <ResultsList options={pollData.options} totalVotes={pollData.total_votes} />
+            <CardContent className="space-y-4">
+              {pollData.options.map((option) => {
+                const percentage = pollData.total_votes > 0 
+                  ? Math.round((option.vote_count / pollData.total_votes) * 100) 
+                  : 0
+
+                return (
+                  <div key={option.index} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-foreground">
+                        {option.text}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {option.vote_count} votes ({percentage}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )
+              })}
+            </CardContent>
           </Card>
 
           {/* Sharing */}

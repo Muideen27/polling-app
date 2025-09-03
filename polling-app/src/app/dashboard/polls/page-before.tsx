@@ -1,3 +1,7 @@
+// BEFORE SNAPSHOT – do not modify
+// This is a snapshot of the dashboard polls page implementation before day 8 refactoring
+// Created: Day 8 - Before refactoring
+
 import { supabaseServer } from '@/lib/supabase-server'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,24 +15,6 @@ interface Poll {
   options: string[]
   created_at: string
   is_active: boolean
-}
-
-// Pagination constants (ready for future implementation)
-const POLLS_LIMIT = 20
-const POLLS_OFFSET = 0
-
-// Helper function to format date consistently
-function formatPollDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-// Pure subcomponent for individual poll display
-function PollListItem({ poll }: { poll: Poll }) {
-  return <PollCard key={poll.id} poll={poll} />
 }
 
 export default async function MyPollsPage() {
@@ -92,13 +78,12 @@ export default async function MyPollsPage() {
     )
   }
 
-  // Fetch polls for the current user with minimal columns and pagination-ready query
+  // Fetch polls for the current user
   const { data: polls, error: pollsError } = await supabase
     .from('polls')
     .select('id, question, options, created_at, is_active')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .range(POLLS_OFFSET, POLLS_OFFSET + POLLS_LIMIT - 1)
 
   const fullName = (user?.user_metadata?.full_name as string) || (user?.user_metadata?.name as string) || ''
 
@@ -183,7 +168,7 @@ export default async function MyPollsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {polls.map((poll) => (
-                  <PollListItem key={poll.id} poll={poll} />
+                  <PollCard key={poll.id} poll={poll} />
                 ))}
               </div>
             )}
