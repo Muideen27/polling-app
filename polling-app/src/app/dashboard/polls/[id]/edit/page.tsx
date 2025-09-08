@@ -1,22 +1,10 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { User, BarChart3 as BarChartIcon, ArrowLeft, Save, Plus, X } from 'lucide-react'
-import { updatePoll } from '@/lib/actions/polls'
+import { User, BarChart3 as BarChartIcon, ArrowLeft } from 'lucide-react'
 import { EditPollForm } from './EditPollForm'
 
-interface Poll {
-  id: string
-  question: string
-  options: string[]
-  created_at: string
-  expires_at: string | null
-  is_active: boolean
-}
 
 export default async function EditPollPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: pollId } = await params

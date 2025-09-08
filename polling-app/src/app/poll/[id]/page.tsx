@@ -112,7 +112,7 @@ function VoteForm({ pollId, options }: { pollId: string; options: PollData['opti
   )
 }
 
-function ResultsList({ options, totalVotes }: { options: PollData['options']; totalVotes: number }) {
+function ResultsList({ options }: { options: PollData['options'] }) {
   const normalizedResults = normalizeResults(options)
   
   return (
@@ -185,7 +185,7 @@ export default async function PollPage({ params }: { params: Promise<{ id: strin
                 {pollData.total_votes} {pollData.total_votes === 1 ? 'vote' : 'votes'} total
               </p>
             </CardHeader>
-            <ResultsList options={pollData.options} totalVotes={pollData.total_votes} />
+            <ResultsList options={pollData.options} />
           </Card>
 
           {/* Sharing */}

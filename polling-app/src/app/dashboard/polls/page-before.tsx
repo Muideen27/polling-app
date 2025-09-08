@@ -9,13 +9,6 @@ import { Button } from '@/components/ui/button'
 import { User, BarChart3 as BarChartIcon, PlusCircle, ArrowLeft } from 'lucide-react'
 import { PollCard } from './PollCard'
 
-interface Poll {
-  id: string
-  question: string
-  options: string[]
-  created_at: string
-  is_active: boolean
-}
 
 export default async function MyPollsPage() {
   const supabase = await supabaseServer()
