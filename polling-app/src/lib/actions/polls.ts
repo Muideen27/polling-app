@@ -2,7 +2,6 @@
 
 import { supabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 export async function createPoll(formData: FormData): Promise<void> {
   try {
@@ -85,6 +84,7 @@ export async function getUserPolls(): Promise<{ polls: Array<{ id: string; quest
     }
   }
 }
+
 
 export async function updatePoll(
   pollId: string,

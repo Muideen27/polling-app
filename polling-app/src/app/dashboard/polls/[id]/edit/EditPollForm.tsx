@@ -52,7 +52,7 @@ export function EditPollForm({ poll }: EditPollFormProps) {
     setOptions(newOptions)
   }
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleSubmit = async () => {
     try {
       setIsSubmitting(true)
       setError('') // Clear previous errors

@@ -6,16 +6,16 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./test/setupTests.ts'],
     globals: true,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      exclude: ['**/*.d.ts', '**/node_modules/**'],
+      reporter: ['text', 'json', 'html'],
+    },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-  },
-  coverage: {
-    provider: 'v8',
-    include: ['src/**'],
-    exclude: ['**/*.d.ts', '**/node_modules/**'],
-    reporter: ['text', 'json', 'html'],
   },
 })

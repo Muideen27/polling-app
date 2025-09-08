@@ -17,14 +17,6 @@ interface Poll {
 const POLLS_LIMIT = 20
 const POLLS_OFFSET = 0
 
-// Helper function to format date consistently
-function formatPollDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
 
 // Pure subcomponent for individual poll display
 function PollListItem({ poll }: { poll: Poll }) {
