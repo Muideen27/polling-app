@@ -268,3 +268,4 @@ export async function validatePollForVoting(pollId: string): Promise<{ canVote: 
     return { canVote: false, error: 'Unable to validate poll status' }
   }
 }
+// CR: tighten invalid state handling
