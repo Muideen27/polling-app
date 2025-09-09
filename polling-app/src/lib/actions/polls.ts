@@ -242,7 +242,7 @@ function isPollExpired(expiresAt: string | null): boolean {
 // New function to validate poll voting eligibility
 export async function validatePollForVoting(pollId: string): Promise<{ canVote: true } | { canVote: false; error: string }> {
   try {
-    const { supabase } = await getCurrentUser()
+    const supabase = await supabaseServer()
     
     const { data: poll, error } = await supabase
       .from('polls')

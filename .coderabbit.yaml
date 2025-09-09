@@ -3,6 +3,7 @@ language: en
 reviews:
   # Enable detailed reviews with context
   profile: "chill"  # Options: "chill", "assertive"
+  base_branch: "main"
 
   # Request changes workflow
   request_changes_workflow: true

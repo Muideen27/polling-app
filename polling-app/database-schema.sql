@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS votes (
   poll_id UUID REFERENCES polls(id) ON DELETE CASCADE,
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   option_index INTEGER NOT NULL, -- Index of the chosen option
+  voter_fingerprint TEXT, -- Browser fingerprint for anonymous voting
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
 );
 
@@ -72,3 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_votes_user_id ON votes(user_id);
 
 -- Optional: Prevent duplicate votes per user per poll (if desired)
 CREATE UNIQUE INDEX IF NOT EXISTS unique_vote_per_user_per_poll ON votes(poll_id, user_id);
+
+-- Prevent duplicate votes per fingerprint per poll (for anonymous voting)
+CREATE UNIQUE INDEX IF NOT EXISTS unique_vote_per_fingerprint_per_poll ON votes(poll_id, voter_fingerprint) 
+WHERE voter_fingerprint IS NOT NULL;
