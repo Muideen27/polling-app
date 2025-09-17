@@ -3,6 +3,7 @@
 
 import { supabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
+import { validatePollForVoting } from './polls'
 
 export async function submitVote(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   try {
@@ -13,6 +14,12 @@ export async function submitVote(formData: FormData): Promise<{ ok: boolean; err
     // Validation: all required
     if (!pollId || !optionId || !fingerprint) {
       return { ok: false, error: 'Missing required fields' }
+    }
+
+    // Validate poll is active and not expired
+    const pollValidation = await validatePollForVoting(pollId)
+    if (!pollValidation.canVote) {
+      return { ok: false, error: pollValidation.error }
     }
 
     const supabase = await supabaseServer()

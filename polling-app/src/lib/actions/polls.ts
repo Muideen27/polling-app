@@ -3,66 +3,125 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
+// Validation helpers
+type ValidationResult = { isValid: true } | { isValid: false; error: string }
+
+function validateQuestion(question: string | null): ValidationResult {
+  const trimmed = question?.trim()
+  if (!trimmed) {
+    return { isValid: false, error: 'Question is required' }
+  }
+  if (trimmed.length < 5) {
+    return { isValid: false, error: 'Question must be at least 5 characters long' }
+  }
+  if (trimmed.length > 500) {
+    return { isValid: false, error: 'Question must be less than 500 characters' }
+  }
+  return { isValid: true }
+}
+
+function validateOptions(options: string[]): ValidationResult {
+  if (options.length < 2) {
+    return { isValid: false, error: 'At least 2 options are required' }
+  }
+  if (options.length > 10) {
+    return { isValid: false, error: 'Maximum 10 options allowed' }
+  }
+  
+  // Check for empty options
+  const emptyOptions = options.some(opt => !opt.trim())
+  if (emptyOptions) {
+    return { isValid: false, error: 'All options must have text' }
+  }
+  
+  // Check for duplicates (case-insensitive)
+  const uniqueOptions = [...new Set(options.map(opt => opt.toLowerCase().trim()))]
+  if (uniqueOptions.length !== options.length) {
+    return { isValid: false, error: 'Duplicate options are not allowed' }
+  }
+  
+  return { isValid: true }
+}
+
+function extractOptionsFromFormData(formData: FormData): string[] {
+  const options: string[] = []
+  for (let i = 0; i < 10; i++) {
+    const option = formData.get(`option_${i}`) as string
+    if (option?.trim()) {
+      options.push(option.trim())
+    }
+  }
+  return options
+}
+
+async function getCurrentUser() {
+  const supabase = await supabaseServer()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error || !user) {
+    throw new Error('You must be logged in to perform this action')
+  }
+  
+  return { supabase, user }
+}
+
+function mapDatabaseError(error: { code?: string; message: string }): string {
+  if (error.code === '42P01') {
+    return 'Database table does not exist. Please run the database schema setup.'
+  }
+  if (error.code === '23505') {
+    return 'A poll with this data already exists.'
+  }
+  if (error.code === '23503') {
+    return 'Referenced data does not exist.'
+  }
+  return `Database error: ${error.message}`
+}
+
 export async function createPoll(formData: FormData): Promise<void> {
   try {
     const question = formData.get('question') as string
-    const options: string[] = []
-    for (let i = 0; i < 10; i++) {
-      const option = formData.get(`option_${i}`) as string
-      if (option && option.trim()) {
-        options.push(option.trim())
-      }
+    const options = extractOptionsFromFormData(formData)
+    
+    // Validate input
+    const questionValidation = validateQuestion(question)
+    if (!questionValidation.isValid) {
+      throw new Error(questionValidation.error)
     }
-    if (!question || question.trim().length < 5) {
-      throw new Error('Question must be at least 5 characters long')
-    }
-    if (options.length < 2) {
-      throw new Error('At least 2 options are required')
+    
+    const optionsValidation = validateOptions(options)
+    if (!optionsValidation.isValid) {
+      throw new Error(optionsValidation.error)
     }
 
-    const supabase = await supabaseServer()
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new Error('You must be logged in to create a poll')
-    }
+    const { supabase, user } = await getCurrentUser()
 
     const { error: pollError } = await supabase
       .from('polls')
       .insert({
         user_id: user.id,
-        question: question.trim(),
-        options: options, // Store options as TEXT[] array
+        question: question!.trim(),
+        options: options,
         created_at: new Date().toISOString(),
         is_active: true
       })
 
     if (pollError) {
       console.error('Error creating poll:', pollError)
-      if (pollError.code === '42P01') {
-        throw new Error('Database table "polls" does not exist. Please run the database schema setup.')
-      }
-      throw new Error(`Failed to create poll: ${pollError.message}`)
+      throw new Error(mapDatabaseError(pollError))
     }
+    
     revalidatePath('/dashboard')
-    // Don't redirect here - let the client handle it with toast notification
   } catch (error) {
     console.error('Error creating poll:', error)
-    revalidatePath('/dashboard') // Revalidate even on error to clear form state
+    revalidatePath('/dashboard')
     throw error
   }
 }
 
 export async function getUserPolls(): Promise<{ polls: Array<{ id: string; question: string; options: string[]; created_at: string; is_active: boolean }>; error?: string }> {
   try {
-    const supabase = await supabaseServer()
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new Error('You must be logged in to view your polls')
-    }
+    const { supabase, user } = await getCurrentUser()
 
     const { data: polls, error: pollsError } = await supabase
       .from('polls')
@@ -72,7 +131,7 @@ export async function getUserPolls(): Promise<{ polls: Array<{ id: string; quest
 
     if (pollsError) {
       console.error('Error fetching polls:', pollsError)
-      throw new Error(`Failed to fetch polls: ${pollsError.message}`)
+      throw new Error(mapDatabaseError(pollsError))
     }
 
     return { polls: polls || [] }
@@ -91,44 +150,20 @@ export async function updatePoll(
   formData: FormData
 ): Promise<{ ok: true; data?: { id: string } } | { ok: false; error: string }> {
   try {
-    const supabase = await supabaseServer()
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return { ok: false, error: 'You must be logged in to update polls' }
-    }
+    const { supabase, user } = await getCurrentUser()
 
-    // Extract and validate form data
     const question = formData.get('question') as string
-    const options: string[] = []
+    const options = extractOptionsFromFormData(formData)
     
-    // Extract options from form data
-    for (let i = 0; i < 10; i++) {
-      const option = formData.get(`option_${i}`) as string
-      if (option && option.trim()) {
-        options.push(option.trim())
-      }
+    // Validate input
+    const questionValidation = validateQuestion(question)
+    if (!questionValidation.isValid) {
+      return { ok: false, error: questionValidation.error }
     }
-
-    // Server-side validation
-    const trimmedQuestion = question?.trim() || ''
-    if (!trimmedQuestion || trimmedQuestion.length < 5) {
-      return { ok: false, error: 'Question must be at least 5 characters long' }
-    }
-
-    if (options.length < 2) {
-      return { ok: false, error: 'At least 2 options are required' }
-    }
-
-    if (options.length > 10) {
-      return { ok: false, error: 'Maximum 10 options allowed' }
-    }
-
-    // Deduplicate options (case-insensitive)
-    const uniqueOptions = [...new Set(options.map(opt => opt.toLowerCase()))]
-    if (uniqueOptions.length !== options.length) {
-      return { ok: false, error: 'Duplicate options are not allowed' }
+    
+    const optionsValidation = validateOptions(options)
+    if (!optionsValidation.isValid) {
+      return { ok: false, error: optionsValidation.error }
     }
 
     // Verify poll ownership
@@ -147,7 +182,7 @@ export async function updatePoll(
     const { error: pollError } = await supabase
       .from('polls')
       .update({
-        question: trimmedQuestion,
+        question: question!.trim(),
         options: options,
         updated_at: new Date().toISOString()
       })
@@ -156,7 +191,7 @@ export async function updatePoll(
 
     if (pollError) {
       console.error('Error updating poll:', pollError)
-      return { ok: false, error: `Failed to update poll: ${pollError.message}` }
+      return { ok: false, error: mapDatabaseError(pollError) }
     }
 
     revalidatePath('/dashboard/polls')
@@ -172,17 +207,10 @@ export async function updatePoll(
 
 export async function deletePoll(formData: FormData): Promise<void> {
   try {
-    const supabase = await supabaseServer()
-    
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new Error('You must be logged in to delete polls')
-    }
+    const { supabase, user } = await getCurrentUser()
 
-    // Get pollId from form data
     const pollId = formData.get('pollId') as string
-    if (!pollId) {
+    if (!pollId?.trim()) {
       throw new Error('Poll ID is required')
     }
 
@@ -191,11 +219,11 @@ export async function deletePoll(formData: FormData): Promise<void> {
       .from('polls')
       .delete()
       .eq('id', pollId)
-      .eq('user_id', user.id) // Ensure user can only delete their own polls
+      .eq('user_id', user.id)
 
     if (deleteError) {
       console.error('Error deleting poll:', deleteError)
-      throw new Error(`Failed to delete poll: ${deleteError.message}`)
+      throw new Error(mapDatabaseError(deleteError))
     }
 
     revalidatePath('/dashboard/polls')
@@ -204,3 +232,40 @@ export async function deletePoll(formData: FormData): Promise<void> {
     throw error
   }
 }
+
+// New function to check if a poll is expired
+function isPollExpired(expiresAt: string | null): boolean {
+  if (!expiresAt) return false
+  return new Date(expiresAt) < new Date()
+}
+
+// New function to validate poll voting eligibility
+export async function validatePollForVoting(pollId: string): Promise<{ canVote: true } | { canVote: false; error: string }> {
+  try {
+    const supabase = await supabaseServer()
+    
+    const { data: poll, error } = await supabase
+      .from('polls')
+      .select('id, is_active, expires_at')
+      .eq('id', pollId)
+      .single()
+    
+    if (error || !poll) {
+      return { canVote: false, error: 'Poll not found' }
+    }
+    
+    if (!poll.is_active) {
+      return { canVote: false, error: 'This poll is no longer active' }
+    }
+    
+    if (isPollExpired(poll.expires_at)) {
+      return { canVote: false, error: 'This poll has expired' }
+    }
+    
+    return { canVote: true }
+  } catch (error) {
+    console.error('Error validating poll for voting:', error)
+    return { canVote: false, error: 'Unable to validate poll status' }
+  }
+}
+// CR: tighten invalid state handling
