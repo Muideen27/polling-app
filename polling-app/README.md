@@ -1,116 +1,243 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🗳️ Polling App - Capstone Project Extension
 
-## Getting Started
+## Project Overview
 
-First, run the development server:
+This is an **extension of the existing Polling App**, a modern full-stack web application built with Next.js and Supabase. The capstone project focuses on enhancing the application with advanced features including role-based authentication, interactive data visualization, community engagement, and comprehensive testing.
 
+### 🎯 New Features & Enhancements
+
+- **Role-Based Authentication** - Admin and user roles with different permissions
+- **Interactive Poll Charts** - Real-time data visualization with charts and graphs
+- **Comments System** - Community engagement through poll discussions
+- **Mobile Accessibility** - Enhanced mobile experience with PWA features
+- **QR Code Sharing** - Advanced sharing capabilities with custom QR codes
+- **Comprehensive Testing** - Unit, integration, and E2E test coverage
+
+### 👥 Target Users
+
+- **Event Organizers** - Create polls for conferences, meetings, and events
+- **Team Leaders** - Gather team feedback and make data-driven decisions
+- **Educators** - Interactive classroom polling and student engagement
+- **Community Managers** - Facilitate discussions and gather community opinions
+- **Market Researchers** - Collect and analyze public opinion data
+
+### 🌟 Why This Matters
+
+In today's digital-first world, real-time feedback and community engagement are crucial for decision-making. This enhanced polling platform democratizes opinion gathering while providing powerful analytics and community features that scale from small teams to large organizations.
+
+---
+
+## 🛠️ Tech Stack
+
+### Core Framework
+- **Next.js 15.5.0** - React framework with App Router
+- **React 19.1.0** - UI library with latest features
+- **TypeScript 5** - Type-safe development
+
+### Styling & UI
+- **Tailwind CSS 4** - Utility-first CSS framework
+- **shadcn/ui** - Accessible component library
+- **Lucide React** - Icon library
+- **class-variance-authority** - Component variant management
+
+### Backend & Database
+- **Supabase** - Backend-as-a-Service
+- **PostgreSQL** - Relational database
+- **@supabase/ssr** - Server-side rendering support
+- **@supabase/supabase-js** - JavaScript client
+
+### Form Handling & Validation
+- **React Hook Form** - Form state management
+- **@hookform/resolvers** - Form validation resolvers
+- **Zod** - Schema validation
+- **Server Actions** - Native form handling
+
+### Testing & Quality
+- **Vitest** - Testing framework
+- **@testing-library/react** - Component testing
+- **@testing-library/jest-dom** - DOM matchers
+- **@testing-library/user-event** - User interaction simulation
+- **jsdom** - DOM environment for tests
+
+### Additional Libraries
+- **qrcode.react** - QR code generation
+- **react-hot-toast** - Toast notifications
+- **clsx** - Conditional class names
+- **tailwind-merge** - Tailwind class merging
+
+---
+
+## 🤖 AI Integration Strategy
+
+### Code Generation
+- **Cursor AI** - Scaffold components, pages, API routes, and database updates
+- **Component Templates** - Generate consistent UI components using shadcn/ui patterns
+- **Database Migrations** - AI-assisted schema updates and RLS policy generation
+- **Type Definitions** - Auto-generate TypeScript interfaces from database schema
+
+### Testing Automation
+- **Unit Test Generation** - Generate comprehensive test suites for Server Actions
+- **Integration Tests** - Create component interaction tests using Testing Library
+- **Mock Generation** - AI-generated mocks for Supabase and external services
+- **Test Coverage** - Automated test coverage analysis and gap identification
+
+### Documentation & Maintenance
+- **Inline Documentation** - AI-generated docstrings and JSDoc comments
+- **README Updates** - Automated documentation updates based on code changes
+- **API Documentation** - Generate OpenAPI specs from Server Actions
+- **Code Comments** - Context-aware code explanations and examples
+
+### Context-Aware Development
+- **Schema Integration** - Feed database schema to AI for accurate code generation
+- **File Tree Context** - Provide project structure for consistent code patterns
+- **Diff Analysis** - Use git diffs to generate relevant suggestions
+- **Pattern Recognition** - Learn from existing code patterns for consistency
+
+---
+
+## 📋 Deliverables
+
+### 1. Enhanced Authentication System
+- [ ] Role-based access control (Admin/User roles)
+- [ ] Permission-based UI rendering
+- [ ] Admin dashboard for user management
+- [ ] Enhanced security policies
+
+### 2. Interactive Data Visualization
+- [ ] Real-time poll charts (Bar, Pie, Line charts)
+- [ ] Interactive data filtering
+- [ ] Export functionality (PDF, CSV)
+- [ ] Analytics dashboard
+
+### 3. Comments & Community Features
+- [ ] Poll comments system
+- [ ] Comment moderation tools
+- [ ] User profiles and avatars
+- [ ] Notification system
+
+### 4. Mobile & Accessibility
+- [ ] Progressive Web App (PWA) features
+- [ ] Enhanced mobile responsiveness
+- [ ] Accessibility improvements (WCAG 2.1)
+- [ ] Offline functionality
+
+### 5. Advanced Sharing
+- [ ] Custom QR code designs
+- [ ] Social media integration
+- [ ] Embeddable poll widgets
+- [ ] Advanced link management
+
+### 6. Testing & Quality Assurance
+- [ ] Unit test coverage (>90%)
+- [ ] Integration test suite
+- [ ] E2E testing with Playwright
+- [ ] Performance testing
+
+### 7. Documentation & Deployment
+- [ ] Comprehensive API documentation
+- [ ] User guides and tutorials
+- [ ] Deployment guides
+- [ ] Monitoring and analytics setup
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+ (recommended: 20+)
+- npm, yarn, or pnpm
+- Supabase account and project
+
+### Environment Setup
+1. **Clone and install:**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd polling-app
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Environment variables:**
+```bash
+# .env.local
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Database setup:**
+```bash
+# Run the enhanced schema in Supabase SQL Editor
+# (Includes new tables for roles, comments, analytics)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Development Commands
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run test         # Run test suite
+npm run test:ui      # Run tests in watch mode
+npm run test:cov     # Run tests with coverage
+npm run lint         # Run ESLint
+```
 
-## Database Setup
+---
 
-Before using the poll creation feature, you need to set up the database tables in Supabase:
+## 📊 Project Timeline
 
-1. **Go to your Supabase project dashboard**
-2. **Navigate to SQL Editor**
-3. **Run the schema from `database-schema.sql`**:
-   ```sql
-   -- Copy and paste the contents of database-schema.sql
-   -- This creates the polls and votes tables
-   ```
+### Phase 1: Foundation (Weeks 1-2)
+- Role-based authentication system
+- Database schema updates
+- Basic admin dashboard
 
-**Required Tables:**
-- `polls(id, user_id, question, options, created_at, expires_at, is_active)`
-- `votes(id, poll_id, user_id, option_index, created_at)`
+### Phase 2: Visualization (Weeks 3-4)
+- Chart integration and components
+- Real-time data updates
+- Analytics dashboard
 
-**Key Features:**
-- **Options stored as TEXT[] array** in polls table for simplicity
-- **Votes table** for tracking user responses
-- **UUID primary keys** with automatic generation
-- **Row Level Security (RLS)** policies for data protection
-- **Proper indexing** for performance
-- **Unique constraint** to prevent duplicate votes per user per poll
+### Phase 3: Community (Weeks 5-6)
+- Comments system implementation
+- User profiles and moderation
+- Notification system
 
-## Learn More
+### Phase 4: Mobile & Accessibility (Weeks 7-8)
+- PWA implementation
+- Mobile optimization
+- Accessibility improvements
 
-To learn more about Next.js, take a look at the following resources:
+### Phase 5: Testing & Polish (Weeks 9-10)
+- Comprehensive testing
+- Performance optimization
+- Documentation and deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🎯 Success Metrics
 
-## Deploy on Vercel
+- **Performance**: < 2s page load times
+- **Accessibility**: WCAG 2.1 AA compliance
+- **Test Coverage**: > 90% code coverage
+- **Mobile Experience**: 95+ Lighthouse mobile score
+- **User Engagement**: Comments and sharing features adoption
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🤝 Contributing
 
-## Rules & Architecture
+This is a capstone project demonstrating modern full-stack development with AI assistance. The codebase follows strict architectural patterns defined in `.cursorrules` to ensure consistency, security, and performance.
 
-This project follows strict architectural patterns defined in `.cursorrules` to ensure consistency, security, and performance:
+### Development Guidelines
+- Follow Next.js App Router patterns
+- Use Server Components for data fetching
+- Implement Server Actions for mutations
+- Maintain comprehensive test coverage
+- Document all new features
 
-### **Data Fetching Pattern**
-- **App Router + Server Components** for all data fetching operations
-- Never use `useEffect` to fetch page data in client components
-- Fetch data directly in Server Components using Supabase
+---
 
-### **Form Mutations Pattern**
-- **Server Actions** for all form submissions and data mutations
-- Forms must use native `<form action={serverAction}>` syntax
-- Never call Server Actions from client `onSubmit` handlers
-- Never use `/api/*` routes for core mutations
+## 📄 License
 
-### **Supabase Client Architecture**
-- **Server Code**: Import and use `@/lib/supabase-server` only
-- **Client Code**: Use `@/lib/supabase-browser` for auth/session UI only
-- Never instantiate browser client in Server Actions or Server Components
-- All secrets loaded from environment variables (`.env.local`)
+This project is part of a capstone demonstration and follows the existing project's licensing terms.
 
-### **UI Component Standards**
-- **shadcn/ui** components for all form elements (`Button`, `Card`, `Input`, `Label`)
-- Semantic labels with proper `htmlFor` attributes
-- Inline error messages and validation feedback
-- Disabled states during form submission
+---
 
-### **Cache Management**
-- **Revalidate after mutations** using `revalidatePath()` for affected routes
-- Ensures UI stays in sync with database changes
-- Automatic cache invalidation for real-time updates
-
-## How We Used AI
-
-This project was developed with AI assistance following a structured approach:
-
-### **Rule Enforcement**
-- **`.cursorrules`** file defines strict architectural patterns
-- AI continuously audits code against these rules
-- Automatic detection of anti-patterns and violations
-
-### **Refactor Loop**
-- **Compliance Audits**: Regular checks against `.cursorrules`
-- **Violation Detection**: Identifies non-compliant code patterns
-- **Systematic Refactoring**: Step-by-step fixes to achieve compliance
-- **Verification**: Final compliance checklist confirmation
-
-### **Development Workflow**
-1. **Define Rules**: Establish patterns in `.cursorrules`
-2. **AI Development**: Generate code following established patterns
-3. **Compliance Audit**: Check against rules using built-in prompts
-4. **Refactor & Fix**: Address violations systematically
-5. **Verify**: Confirm 100% compliance before merging
-
-This approach ensures consistent architecture, prevents technical debt, and maintains high code quality standards across the entire project.
+**Built with ❤️ using Next.js, Supabase, and AI assistance**
